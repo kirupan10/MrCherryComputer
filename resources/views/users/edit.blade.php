@@ -11,7 +11,7 @@
                 <form action="{{ route('users.update', $user) }}" method="POST">
                     @csrf
                     @method('PUT')
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
@@ -49,7 +49,7 @@
                             <select name="role" required class="w-full border-gray-300 rounded-lg">
                                 <option value="">Select Role</option>
                                 @foreach($roles as $role)
-                                <option value="{{ $role->name }}" 
+                                <option value="{{ $role->name }}"
                                     {{ old('role', $user->roles->first()?->name) == $role->name ? 'selected' : '' }}>
                                     {{ ucfirst($role->name) }}
                                 </option>

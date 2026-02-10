@@ -12,12 +12,12 @@
                 <form method="GET" action="{{ route('reports.profit-loss') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
-                        <input type="date" name="from_date" value="{{ request('from_date', now()->subDays(30)->format('Y-m-d')) }}" 
+                        <input type="date" name="from_date" value="{{ request('from_date', now()->subDays(30)->format('Y-m-d')) }}"
                             class="w-full border-gray-300 rounded-lg">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
-                        <input type="date" name="to_date" value="{{ request('to_date', now()->format('Y-m-d')) }}" 
+                        <input type="date" name="to_date" value="{{ request('to_date', now()->format('Y-m-d')) }}"
                             class="w-full border-gray-300 rounded-lg">
                     </div>
                     <div class="flex items-end">
@@ -31,7 +31,7 @@
             <!-- P&L Statement -->
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="text-xl font-bold text-gray-900 mb-6">Profit & Loss Statement</h3>
-                
+
                 <!-- Revenue Section -->
                 <div class="mb-6">
                     <div class="flex justify-between items-center py-3 border-b-2 border-gray-900">

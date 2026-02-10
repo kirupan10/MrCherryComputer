@@ -20,6 +20,12 @@ class ExpenseCategory extends Model
         'is_active' => 'boolean',
     ];
 
+    // Scopes
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
     // Relationships
     public function expenses()
     {

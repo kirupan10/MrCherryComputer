@@ -60,7 +60,7 @@ class DashboardController extends Controller
                 ->latest()
                 ->limit(10)
                 ->get();
-            
+
             // Stats visible to all roles
             $data['totalSales'] = Sale::whereMonth('sale_date', now()->month)
                 ->whereYear('sale_date', now()->year)

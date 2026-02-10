@@ -18,112 +18,125 @@ class RolePermissionSeeder extends Seeder
 
         // Create permissions
         $permissions = [
-            // User Management
-            'view_users',
-            'create_users',
-            'edit_users',
-            'delete_users',
-            'assign_roles',
-
             // Product Management
-            'view_products',
-            'create_products',
-            'edit_products',
-            'delete_products',
-            'manage_stock',
+            'product-list',
+            'product-create',
+            'product-edit',
+            'product-delete',
 
-            // Sales
-            'access_pos',
-            'create_sales',
-            'view_all_sales',
-            'edit_sales',
-            'cancel_sales',
-            'apply_discount',
-            'override_discount',
+            // Category Management
+            'category-list',
+            'category-create',
+            'category-edit',
+            'category-delete',
 
-            // Returns
-            'view_all_returns',
-            'create_returns',
-            'approve_returns',
-            'process_refunds',
+            // Unit Management
+            'unit-list',
+            'unit-create',
+            'unit-edit',
+            'unit-delete',
 
-            // Expenses
-           'view_expenses',
-            'create_expenses',
-            'edit_expenses',
-            'delete_expenses',
-            'approve_expenses',
+            // Customer Management
+            'customer-list',
+            'customer-create',
+            'customer-edit',
+            'customer-delete',
 
-            // Reports
-            'view_all_reports',
-            'view_profit_loss',
-            'view_user_performance',
-            'export_reports',
+            // Sales Management
+            'sale-list',
+            'sale-create',
+            'sale-edit',
+            'sale-delete',
+            'sale-view',
 
-            // Customers
-            'view_customers',
-            'create_customers',
-            'edit_customers',
-            'delete_customers',
-            'manage_credit',
+            // Return Management
+            'return-list',
+            'return-create',
+            'return-view',
 
-            // Master Data
-            'manage_categories',
-            'manage_units',
+            // Expense Management
+            'expense-list',
+            'expense-create',
+            'expense-edit',
+            'expense-delete',
+            'expense-approve',
+
+            // Expense Category Management
+            'expense-category-list',
+            'expense-category-create',
+            'expense-category-edit',
+            'expense-category-delete',
+
+            // User Management
+            'user-list',
+            'user-create',
+            'user-edit',
+            'user-delete',
+
+            // Report Management
+            'report-view',
         ];
 
         foreach ($permissions as $permission) {
-            Permission::create(['name' => $permission]);
+            Permission::firstOrCreate(['name' => $permission]);
         }
 
         // Create roles
-        $admin = Role::create(['name' => 'admin']);
-        $manager = Role::create(['name' => 'manager']);
-        $cashier = Role::create(['name' => 'cashier']);
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $manager = Role::firstOrCreate(['name' => 'manager']);
+        $cashier = Role::firstOrCreate(['name' => 'cashier']);
 
         // Admin gets all permissions
-        $admin->givePermissionTo(Permission::all());
+        $admin->syncPermissions(Permission::all());
 
         // Manager permissions
-        $manager->givePermissionTo([
-            'view_products',
-            'create_products',
-            'edit_products',
-            'delete_products',
-            'manage_stock',
-            'access_pos',
-            'create_sales',
-            'view_all_sales',
-            'edit_sales',
-            'apply_discount',
-            'create_returns',
-            'approve_returns',
-            'view_expenses',
-            'create_expenses',
-            'edit_expenses',
-            'view_all_reports',
-            'view_profit_loss',
-            'view_user_performance',
-            'export_reports',
-            'view_customers',
-            'create_customers',
-            'edit_customers',
-            'manage_categories',
-            'manage_units',
-            'view_users',
-            'create_users',
-            'edit_users',
+        $manager->syncPermissions([
+            'product-list',
+            'product-create',
+            'product-edit',
+            'product-delete',
+            'category-list',
+            'category-create',
+            'category-edit',
+            'category-delete',
+            'unit-list',
+            'unit-create',
+            'unit-edit',
+            'unit-delete',
+            'customer-list',
+            'customer-create',
+            'customer-edit',
+            'customer-delete',
+            'sale-list',
+            'sale-create',
+            'sale-edit',
+            'sale-view',
+            'return-list',
+            'return-create',
+            'return-view',
+            'expense-list',
+            'expense-create',
+            'expense-edit',
+            'expense-approve',
+            'expense-category-list',
+            'expense-category-create',
+            'expense-category-edit',
+            'expense-category-delete',
+            'report-view',
         ]);
 
         // Cashier permissions
-        $cashier->givePermissionTo([
-            'view_products',
-            'access_pos',
-            'create_sales',
-            'view_customers',
-            'create_customers',
-            'edit_customers',
-            'create_returns',
+        $cashier->syncPermissions([
+            'product-list',
+            'customer-list',
+            'customer-create',
+            'customer-edit',
+            'sale-list',
+            'sale-create',
+            'sale-view',
+            'return-list',
+            'return-create',
+            'return-view',
         ]);
     }
 }

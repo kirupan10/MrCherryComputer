@@ -17,8 +17,8 @@
             <!-- Search Bar -->
             <div class="bg-white shadow-sm rounded-lg p-4 mb-6">
                 <form method="GET" action="{{ route('users.index') }}" class="flex gap-4">
-                    <input type="text" name="search" value="{{ request('search') }}" 
-                        placeholder="Search by name or email..." 
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        placeholder="Search by name or email..."
                         class="flex-1 border-gray-300 rounded-lg">
                     <select name="role" class="border-gray-300 rounded-lg">
                         <option value="">All Roles</option>
@@ -68,8 +68,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 @foreach($user->roles as $role)
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                                    {{ $role->name === 'admin' ? 'bg-red-100 text-red-800' : 
+                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                                    {{ $role->name === 'admin' ? 'bg-red-100 text-red-800' :
                                        ($role->name === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800') }}">
                                     {{ ucfirst($role->name) }}
                                 </span>
@@ -97,7 +97,7 @@
                                     @endcan
                                     @can('user-delete')
                                     @if($user->id !== auth()->id())
-                                    <form action="{{ route('users.destroy', $user) }}" method="POST" 
+                                    <form action="{{ route('users.destroy', $user) }}" method="POST"
                                         onsubmit="return confirm('Are you sure you want to delete this user?')">
                                         @csrf
                                         @method('DELETE')

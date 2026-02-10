@@ -17,16 +17,16 @@
             <!-- Filters -->
             <div class="bg-white shadow-sm rounded-lg p-4 mb-6">
                 <form method="GET" action="{{ route('returns.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" name="search" value="{{ request('search') }}" 
-                        placeholder="Return # or Invoice #..." 
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        placeholder="Return # or Invoice #..."
                         class="border-gray-300 rounded-lg">
-                    
-                    <input type="date" name="from_date" value="{{ request('from_date') }}" 
+
+                    <input type="date" name="from_date" value="{{ request('from_date') }}"
                         class="border-gray-300 rounded-lg">
-                    
-                    <input type="date" name="to_date" value="{{ request('to_date') }}" 
+
+                    <input type="date" name="to_date" value="{{ request('to_date') }}"
                         class="border-gray-300 rounded-lg">
-                    
+
                     <div class="flex gap-2">
                         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
                             Filter

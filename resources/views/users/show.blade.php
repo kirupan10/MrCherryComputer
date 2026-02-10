@@ -25,8 +25,8 @@
                         <p class="text-gray-500">{{ $user->email }}</p>
                         <div class="mt-2 flex gap-2">
                             @foreach($user->roles as $role)
-                            <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full 
-                                {{ $role->name === 'admin' ? 'bg-red-100 text-red-800' : 
+                            <span class="px-3 py-1 inline-flex text-sm font-semibold rounded-full
+                                {{ $role->name === 'admin' ? 'bg-red-100 text-red-800' :
                                    ($role->name === 'manager' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800') }}">
                                 {{ ucfirst($role->name) }}
                             </span>

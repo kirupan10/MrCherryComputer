@@ -10,7 +10,7 @@
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <form action="{{ route('users.store') }}" method="POST">
                     @csrf
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Name *</label>

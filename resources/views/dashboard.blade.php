@@ -165,7 +165,7 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200">
-                                @forelse($recentSales as $sale)
+                                @forelse($myRecentSales as $sale)
                                 <tr>
                                     <td class="px-3 py-2 text-sm text-gray-900">{{ $sale->invoice_number }}</td>
                                     <td class="px-3 py-2 text-sm text-gray-900">{{ optional($sale->customer)->name ?? 'Walk-in' }}</td>

@@ -19,8 +19,8 @@
                         @endforeach
                     </select>
                     <div class="flex items-center">
-                        <input type="checkbox" name="low_stock_only" id="low_stock_only" value="1" 
-                            {{ request('low_stock_only') ? 'checked' : '' }} 
+                        <input type="checkbox" name="low_stock_only" id="low_stock_only" value="1"
+                            {{ request('low_stock_only') ? 'checked' : '' }}
                             class="rounded border-gray-300 text-blue-600 mr-2">
                         <label for="low_stock_only" class="text-sm text-gray-700">Low Stock Only</label>
                     </div>

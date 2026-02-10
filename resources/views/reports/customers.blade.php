@@ -12,12 +12,12 @@
                 <form method="GET" action="{{ route('reports.customers') }}" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">From Date</label>
-                        <input type="date" name="from_date" value="{{ request('from_date', now()->subDays(90)->format('Y-m-d')) }}" 
+                        <input type="date" name="from_date" value="{{ request('from_date', now()->subDays(90)->format('Y-m-d')) }}"
                             class="w-full border-gray-300 rounded-lg">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">To Date</label>
-                        <input type="date" name="to_date" value="{{ request('to_date', now()->format('Y-m-d')) }}" 
+                        <input type="date" name="to_date" value="{{ request('to_date', now()->format('Y-m-d')) }}"
                             class="w-full border-gray-300 rounded-lg">
                     </div>
                     <div class="flex items-end">
