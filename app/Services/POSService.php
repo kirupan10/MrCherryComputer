@@ -20,15 +20,15 @@ class POSService
     {
         $subtotal = 0;
         $taxAmount = 0;
-        
+
         foreach ($items as $item) {
             $itemSubtotal = $item['price'] * $item['quantity'];
             $itemTax = $itemSubtotal * ($item['tax_percentage'] ?? 0) / 100;
-            
+
             $subtotal += $itemSubtotal;
             $taxAmount += $itemTax;
         }
-        
+
         return [
             'subtotal' => round($subtotal, 2),
             'tax_amount' => round($taxAmount, 2),
@@ -42,23 +42,23 @@ class POSService
     public function validateStockAvailability(array $items): array
     {
         $errors = [];
-        
+
         foreach ($items as $item) {
             $product = Product::with('stock')->find($item['product_id']);
-            
+
             if (!$product) {
                 $errors[] = "Product not found: ID {$item['product_id']}";
                 continue;
             }
-            
+
             $stock = $product->stock;
-            
+
             if (!$stock || $stock->quantity < $item['quantity']) {
                 $available = $stock ? $stock->quantity : 0;
                 $errors[] = "Insufficient stock for {$product->name}. Available: {$available}, Requested: {$item['quantity']}";
             }
         }
-        
+
         return $errors;
     }
 
@@ -70,7 +70,7 @@ class POSService
         return DB::transaction(function () use ($saleData) {
             // Validate stock
             $stockErrors = $this->validateStockAvailability($saleData['items']);
-            
+
             if (!empty($stockErrors)) {
                 throw new \Exception(implode(', ', $stockErrors));
             }
@@ -121,7 +121,7 @@ class POSService
     private function updateStock(int $productId, float $quantity, string $type, Sale $sale): void
     {
         $product = Product::findOrFail($productId);
-        
+
         $stock = $product->stock ?? Stock::create([
             'product_id' => $productId,
             'quantity' => 0,
@@ -129,7 +129,7 @@ class POSService
         ]);
 
         $previousQuantity = $stock->quantity;
-        
+
         if ($type === 'out') {
             $newQuantity = $previousQuantity - $quantity;
         } else {
@@ -196,11 +196,11 @@ class POSService
         if ($discountAmount > 0) {
             return round($discountAmount, 2);
         }
-        
+
         if ($discountPercentage > 0) {
             return round(($subtotal * $discountPercentage) / 100, 2);
         }
-        
+
         return 0;
     }
 }

@@ -223,8 +223,8 @@ class ReportService
                     'phone' => $customer->phone,
                     'total_orders' => $customer->sales_count,
                     'total_spent' => $customer->sales_sum_total_amount ?? 0,
-                    'average_order_value' => $customer->sales_count > 0 
-                        ? ($customer->sales_sum_total_amount ?? 0) / $customer->sales_count 
+                    'average_order_value' => $customer->sales_count > 0
+                        ? ($customer->sales_sum_total_amount ?? 0) / $customer->sales_count
                         : 0,
                 ];
             });
@@ -261,12 +261,12 @@ class ReportService
             ->count();
 
         // Calculate trends
-        $salesGrowth = $previousSales > 0 
-            ? (($currentSales - $previousSales) / $previousSales) * 100 
+        $salesGrowth = $previousSales > 0
+            ? (($currentSales - $previousSales) / $previousSales) * 100
             : 0;
 
-        $ordersGrowth = $previousOrders > 0 
-            ? (($currentOrders - $previousOrders) / $previousOrders) * 100 
+        $ordersGrowth = $previousOrders > 0
+            ? (($currentOrders - $previousOrders) / $previousOrders) * 100
             : 0;
 
         return [

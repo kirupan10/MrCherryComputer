@@ -30,7 +30,7 @@ class POSController extends Controller
     public function searchProducts(Request $request)
     {
         $search = $request->input('q', '');
-        
+
         $products = Product::with(['category', 'unit', 'stock'])
             ->where('is_active', true)
             ->where(function ($query) use ($search) {
@@ -83,7 +83,7 @@ class POSController extends Controller
             foreach ($validated['items'] as $item) {
                 $product = Product::find($item['product_id']);
                 $stock = $product->stock;
-                
+
                 if (!$stock || $stock->quantity < $item['quantity']) {
                     throw new \Exception("Insufficient stock for {$product->name}");
                 }
@@ -104,7 +104,7 @@ class POSController extends Controller
             // Create sale items and update stock
             foreach ($validated['items'] as $item) {
                 $product = Product::find($item['product_id']);
-                
+
                 SaleItem::create([
                     'sale_id' => $sale->id,
                     'product_id' => $item['product_id'],

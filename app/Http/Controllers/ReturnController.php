@@ -67,7 +67,7 @@ class ReturnController extends Controller
     public function searchSale(Request $request)
     {
         $search = $request->input('q', '');
-        
+
         $sales = Sale::with(['customer', 'items.product'])
             ->where('status', 'completed')
             ->where(function ($query) use ($search) {
@@ -121,13 +121,13 @@ class ReturnController extends Controller
         try {
             // Validate return quantities against original sale
             $sale = Sale::with('items')->findOrFail($validated['sale_id']);
-            
+
             foreach ($validated['items'] as $returnItem) {
                 $saleItem = $sale->items->firstWhere('product_id', $returnItem['product_id']);
                 if (!$saleItem) {
                     throw new \Exception('Product not found in original sale.');
                 }
-                
+
                 // Check already returned quantity
                 $alreadyReturned = ReturnItem::whereHas('return', function ($query) use ($validated) {
                     $query->where('sale_id', $validated['sale_id'])

@@ -23,7 +23,7 @@ return new class extends Migration
             $table->decimal('total', 12, 2);
             $table->text('reason')->nullable();
             $table->timestamps();
-            
+
             $table->index(['return_id', 'product_id']);
         });
     }

@@ -14,7 +14,7 @@ class DashboardController extends Controller
     public function index()
     {
         $user = Auth::user();
-        
+
         // Common data for all roles
         $data = [
             'userRole' => $user->roles->first()->name ?? 'No Role',
@@ -37,13 +37,13 @@ class DashboardController extends Controller
                 ->latest()
                 ->limit(10)
                 ->get();
-            
+
             if ($user->hasRole('admin')) {
                 $data['todayExpenses'] = Expense::today()->sum('amount');
                 $data['monthExpenses'] = Expense::thisMonth()->sum('amount');
             }
         } else {
-            // Cashier Dashboard  
+            // Cashier Dashboard
             $data['mySalesToday'] = Sale::today()
                 ->where('created_by', $user->id)
                 ->completed()

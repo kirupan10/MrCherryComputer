@@ -17,7 +17,7 @@ class StockService
     {
         return DB::transaction(function () use ($productId, $quantity, $notes) {
             $product = Product::findOrFail($productId);
-            
+
             $stock = $product->stock ?? Stock::create([
                 'product_id' => $productId,
                 'quantity' => 0,
@@ -54,9 +54,9 @@ class StockService
     {
         return DB::transaction(function () use ($productId, $quantity, $notes) {
             $product = Product::findOrFail($productId);
-            
+
             $stock = $product->stock;
-            
+
             if (!$stock || $stock->quantity < $quantity) {
                 throw new \Exception('Insufficient stock available');
             }
@@ -91,7 +91,7 @@ class StockService
     {
         return DB::transaction(function () use ($productId, $newQuantity, $notes) {
             $product = Product::findOrFail($productId);
-            
+
             $stock = $product->stock ?? Stock::create([
                 'product_id' => $productId,
                 'quantity' => 0,
@@ -129,7 +129,7 @@ class StockService
         return DB::transaction(function () use ($fromProductId, $toProductId, $quantity, $notes) {
             // Remove from source
             $this->removeStock($fromProductId, $quantity, $notes ?? "Transfer to product {$toProductId}");
-            
+
             // Add to destination
             $this->addStock($toProductId, $quantity, $notes ?? "Transfer from product {$fromProductId}");
 
@@ -179,7 +179,7 @@ class StockService
     {
         $product = Product::with('stock')->findOrFail($productId);
         $quantity = $product->stock?->quantity ?? 0;
-        
+
         return round($quantity * $product->purchase_price, 2);
     }
 
@@ -200,13 +200,13 @@ class StockService
     public function checkAvailability(int $productId, float $requiredQuantity): bool
     {
         $product = Product::with('stock')->find($productId);
-        
+
         if (!$product) {
             return false;
         }
-        
+
         $availableQuantity = $product->stock?->quantity ?? 0;
-        
+
         return $availableQuantity >= $requiredQuantity;
     }
 
@@ -254,7 +254,7 @@ class StockService
                         $update['quantity'],
                         $update['notes'] ?? 'Bulk stock update'
                     );
-                    
+
                     $results['success'][] = [
                         'product_id' => $update['product_id'],
                         'quantity' => $stock->quantity,

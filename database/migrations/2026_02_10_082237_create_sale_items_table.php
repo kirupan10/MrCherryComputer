@@ -24,7 +24,7 @@ return new class extends Migration
             $table->decimal('subtotal', 12, 2);
             $table->decimal('total', 12, 2);
             $table->timestamps();
-            
+
             $table->index(['sale_id', 'product_id']);
         });
     }

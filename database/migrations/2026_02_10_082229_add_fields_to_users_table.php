@@ -16,7 +16,7 @@ return new class extends Migration
             $table->text('address')->nullable()->after('phone');
             $table->boolean('is_active')->default(true)->after('address');
             $table->softDeletes();
-            
+
             $table->index('is_active');
         });
     }

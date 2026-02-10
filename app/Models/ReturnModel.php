@@ -37,7 +37,7 @@ class ReturnModel extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($return) {
             if (empty($return->return_number)) {
                 $return->return_number = self::generateReturnNumber();

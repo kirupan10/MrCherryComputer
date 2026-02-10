@@ -65,7 +65,7 @@ class UserController extends Controller
     public function show(User $user)
     {
         $user->load('roles');
-        
+
         $stats = [
             'total_sales' => $user->sales()->count(),
             'sales_amount' => $user->sales()->sum('total_amount'),

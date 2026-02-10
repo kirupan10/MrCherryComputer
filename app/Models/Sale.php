@@ -43,7 +43,7 @@ class Sale extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($sale) {
             if (empty($sale->invoice_number)) {
                 $sale->invoice_number = self::generateInvoiceNumber();

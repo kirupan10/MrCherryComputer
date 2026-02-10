@@ -26,7 +26,7 @@ return new class extends Migration
             $table->foreignId('approved_by')->nullable()->constrained('users');
             $table->timestamps();
             $table->softDeletes();
-            
+
             $table->index(['expense_date', 'expense_category_id', 'status', 'created_by']);
         });
     }

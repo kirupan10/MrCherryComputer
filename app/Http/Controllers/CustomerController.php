@@ -117,7 +117,7 @@ class CustomerController extends Controller
     public function search(Request $request)
     {
         $search = $request->input('q', '');
-        
+
         $customers = Customer::where('is_active', true)
             ->where(function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")

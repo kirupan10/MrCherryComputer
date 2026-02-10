@@ -23,7 +23,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
-            
+
             $table->index(['product_id', 'type', 'created_at']);
         });
     }

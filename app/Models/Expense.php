@@ -32,7 +32,7 @@ class Expense extends Model
     protected static function boot()
     {
         parent::boot();
-        
+
         static::creating(function ($expense) {
             if (empty($expense->expense_number)) {
                 $expense->expense_number = self::generateExpenseNumber();

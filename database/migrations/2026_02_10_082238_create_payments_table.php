@@ -21,7 +21,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
-            
+
             $table->index(['sale_id', 'payment_date']);
         });
     }

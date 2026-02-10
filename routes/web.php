@@ -22,10 +22,10 @@ Route::get('/', function () {
 
 // Authenticated routes
 Route::middleware(['auth', 'verified'])->group(function () {
-    
+
     // Dashboard - All authenticated users
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -47,34 +47,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin and Manager routes
     Route::middleware(['role:admin,manager'])->group(function () {
-        
+
         // Categories
         Route::resource('categories', CategoryController::class);
-        
+
         // Units
         Route::resource('units', UnitController::class);
-        
+
         // Products
         Route::resource('products', ProductController::class);
         Route::post('/products/{product}/update-stock', [ProductController::class, 'updateStock'])->name('products.update-stock');
-        
+
         // Customers
         Route::resource('customers', CustomerController::class);
         Route::get('/customers-search', [CustomerController::class, 'search'])->name('customers.search');
-        
+
         // Sales management (edit, update status, delete)
         Route::get('/sales/{sale}/edit', [SaleController::class, 'edit'])->name('sales.edit');
         Route::patch('/sales/{sale}/status', [SaleController::class, 'updateStatus'])->name('sales.update-status');
-        
+
         // Returns
         Route::resource('returns', ReturnController::class);
         Route::get('/returns-search-sale', [ReturnController::class, 'searchSale'])->name('returns.search-sale');
         Route::post('/returns/{return}/complete', [ReturnController::class, 'complete'])->name('returns.complete');
         Route::post('/returns/{return}/cancel', [ReturnController::class, 'cancel'])->name('returns.cancel');
-        
+
         // Expenses
         Route::resource('expenses', ExpenseController::class);
-        
+
         // Reports
         Route::prefix('reports')->name('reports.')->group(function () {
             Route::get('/', [ReportController::class, 'index'])->name('index');
@@ -90,18 +90,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Admin only routes
     Route::middleware(['role:admin'])->group(function () {
-        
+
         // User Management
         Route::resource('users', UserController::class);
         Route::post('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
-        
+
         // Expense Categories
         Route::resource('expense-categories', ExpenseCategoryController::class);
-        
+
         // Expense Approval
         Route::post('/expenses/{expense}/approve', [ExpenseController::class, 'approve'])->name('expenses.approve');
         Route::post('/expenses/{expense}/reject', [ExpenseController::class, 'reject'])->name('expenses.reject');
-        
+
         // Sales deletion (admin only)
         Route::delete('/sales/{sale}', [SaleController::class, 'destroy'])->name('sales.destroy');
     });

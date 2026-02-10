@@ -38,7 +38,7 @@ class ReportController extends Controller
         $averageOrder = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
 
         $groupBy = $request->input('group_by', 'day');
-        
+
         if ($groupBy === 'day') {
             $salesData = $query->select(
                 DB::raw('DATE(created_at) as date'),

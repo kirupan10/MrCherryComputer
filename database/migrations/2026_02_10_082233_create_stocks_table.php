@@ -17,7 +17,7 @@ return new class extends Migration
             $table->decimal('quantity', 10, 2)->default(0);
             $table->foreignId('last_updated_by')->constrained('users');
             $table->timestamps();
-            
+
             $table->index(['product_id', 'quantity']);
         });
     }

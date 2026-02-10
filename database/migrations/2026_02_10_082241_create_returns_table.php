@@ -26,7 +26,7 @@ return new class extends Migration
             $table->enum('status', ['pending', 'completed', 'rejected'])->default('pending');
             $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
-            
+
             $table->index(['return_number', 'sale_id', 'return_date']);
         });
     }
