@@ -1,53 +1,58 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Add New Customer
+            Add New User
         </h2>
     </x-slot>
 
     <div class="py-12">
         <div class="max-w-3xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white shadow-sm rounded-lg p-6">
-                <form action="{{ route('customers.store') }}" method="POST">
+                <form action="{{ route('users.store') }}" method="POST">
                     @csrf
-
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Name *</label>
                             <input type="text" name="name" value="{{ old('name') }}" required
                                 class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone *</label>
-                            <input type="text" name="phone" value="{{ old('phone') }}" required
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                            <input type="email" name="email" value="{{ old('email') }}" required
                                 class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                            <input type="email" name="email" value="{{ old('email') }}"
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+                            <input type="password" name="password" required
+                                class="w-full border-gray-300 rounded-lg">
+                            <p class="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password *</label>
+                            <input type="password" name="password_confirmation" required
                                 class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
-                            <input type="text" name="company_name" value="{{ old('company_name') }}"
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                            <input type="text" name="phone" value="{{ old('phone') }}"
                                 class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">GST Number</label>
-                            <input type="text" name="gst_number" value="{{ old('gst_number') }}"
-                                placeholder="e.g., 27AABCU9603R1ZM"
-                                class="w-full border-gray-300 rounded-lg">
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Credit Limit</label>
-                            <input type="number" name="credit_limit" value="{{ old('credit_limit', 0) }}"
-                                step="0.01" min="0"
-                                class="w-full border-gray-300 rounded-lg">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Role *</label>
+                            <select name="role" required class="w-full border-gray-300 rounded-lg">
+                                <option value="">Select Role</option>
+                                @foreach($roles as $role)
+                                <option value="{{ $role->name }}" {{ old('role') == $role->name ? 'selected' : '' }}>
+                                    {{ ucfirst($role->name) }}
+                                </option>
+                                @endforeach
+                            </select>
                         </div>
 
                         <div class="md:col-span-2">
@@ -66,9 +71,9 @@
 
                     <div class="mt-6 flex gap-4">
                         <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
-                            Create Customer
+                            Create User
                         </button>
-                        <a href="{{ route('customers.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
+                        <a href="{{ route('users.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
                             Cancel
                         </a>
                     </div>

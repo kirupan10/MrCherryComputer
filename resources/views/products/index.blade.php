@@ -17,10 +17,10 @@
             <!-- Search and Filter -->
             <div class="bg-white shadow-sm rounded-lg p-4 mb-6">
                 <form method="GET" action="{{ route('products.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" name="search" value="{{ request('search') }}" 
-                        placeholder="Search by name, SKU, or barcode..." 
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        placeholder="Search by name, SKU, or barcode..."
                         class="border-gray-300 rounded-lg">
-                    
+
                     <select name="category_id" class="border-gray-300 rounded-lg">
                         <option value="">All Categories</option>
                         @foreach($categories as $category)
@@ -29,14 +29,14 @@
                         </option>
                         @endforeach
                     </select>
-                    
+
                     <div class="flex items-center">
-                        <input type="checkbox" name="low_stock" id="low_stock" value="1" 
-                            {{ request('low_stock') ? 'checked' : '' }} 
+                        <input type="checkbox" name="low_stock" id="low_stock" value="1"
+                            {{ request('low_stock') ? 'checked' : '' }}
                             class="rounded border-gray-300 text-blue-600 mr-2">
                         <label for="low_stock" class="text-sm text-gray-700">Low Stock Only</label>
                     </div>
-                    
+
                     <div class="flex gap-2">
                         <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
                             Search
@@ -117,7 +117,7 @@
                                     <a href="{{ route('products.edit', $product) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
                                     @endcan
                                     @can('product-delete')
-                                    <form action="{{ route('products.destroy', $product) }}" method="POST" 
+                                    <form action="{{ route('products.destroy', $product) }}" method="POST"
                                         onsubmit="return confirm('Are you sure you want to delete this product?')">
                                         @csrf
                                         @method('DELETE')

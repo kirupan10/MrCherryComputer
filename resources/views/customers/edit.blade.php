@@ -11,7 +11,7 @@
                 <form action="{{ route('customers.update', $customer) }}" method="POST">
                     @csrf
                     @method('PUT')
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Customer Name *</label>
@@ -45,7 +45,7 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Credit Limit</label>
-                            <input type="number" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit) }}" 
+                            <input type="number" name="credit_limit" value="{{ old('credit_limit', $customer->credit_limit) }}"
                                 step="0.01" min="0"
                                 class="w-full border-gray-300 rounded-lg">
                         </div>

@@ -13,7 +13,7 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
-        
+
         @stack('styles')
     </head>
     <body class="font-sans antialiased">
@@ -60,7 +60,7 @@
                 </div>
             </main>
         </div>
-        
+
         @stack('scripts')
     </body>
 </html>

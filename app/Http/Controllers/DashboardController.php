@@ -28,15 +28,18 @@ class DashboardController extends Controller
                 ->whereYear('sale_date', now()->year)
                 ->completed()
                 ->sum('total_amount');
+            $data['totalSales'] = $data['monthSales']; // Use monthly sales for total
             $data['totalCustomers'] = Customer::count();
             $data['lowStockProducts'] = Product::with(['category', 'stock'])
                 ->lowStock()
                 ->limit(10)
                 ->get();
+            $data['lowStockCount'] = Product::lowStock()->count();
             $data['recentSales'] = Sale::with(['customer', 'creator'])
                 ->latest()
                 ->limit(10)
                 ->get();
+            $data['pendingExpenses'] = Expense::where('status', 'pending')->count();
 
             if ($user->hasRole('admin')) {
                 $data['todayExpenses'] = Expense::today()->sum('amount');
@@ -57,6 +60,14 @@ class DashboardController extends Controller
                 ->latest()
                 ->limit(10)
                 ->get();
+            
+            // Stats visible to all roles
+            $data['totalSales'] = Sale::whereMonth('sale_date', now()->month)
+                ->whereYear('sale_date', now()->year)
+                ->completed()
+                ->sum('total_amount');
+            $data['todaySales'] = Sale::today()->completed()->sum('total_amount');
+            $data['lowStockCount'] = Product::lowStock()->count();
         }
 
         return view('dashboard', $data);

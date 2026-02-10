@@ -11,7 +11,7 @@
                 <form action="{{ route('products.update', $product) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Product Name *</label>
@@ -57,31 +57,31 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Purchase Price *</label>
-                            <input type="number" name="purchase_price" value="{{ old('purchase_price', $product->purchase_price) }}" 
+                            <input type="number" name="purchase_price" value="{{ old('purchase_price', $product->purchase_price) }}"
                                 step="0.01" min="0" required class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Selling Price *</label>
-                            <input type="number" name="selling_price" value="{{ old('selling_price', $product->selling_price) }}" 
+                            <input type="number" name="selling_price" value="{{ old('selling_price', $product->selling_price) }}"
                                 step="0.01" min="0" required class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">MRP</label>
-                            <input type="number" name="mrp" value="{{ old('mrp', $product->mrp) }}" 
+                            <input type="number" name="mrp" value="{{ old('mrp', $product->mrp) }}"
                                 step="0.01" min="0" class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Tax %</label>
-                            <input type="number" name="tax_percentage" value="{{ old('tax_percentage', $product->tax_percentage) }}" 
+                            <input type="number" name="tax_percentage" value="{{ old('tax_percentage', $product->tax_percentage) }}"
                                 step="0.01" min="0" max="100" class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Low Stock Alert *</label>
-                            <input type="number" name="low_stock_alert" value="{{ old('low_stock_alert', $product->low_stock_alert) }}" 
+                            <input type="number" name="low_stock_alert" value="{{ old('low_stock_alert', $product->low_stock_alert) }}"
                                 min="0" required class="w-full border-gray-300 rounded-lg">
                         </div>
 

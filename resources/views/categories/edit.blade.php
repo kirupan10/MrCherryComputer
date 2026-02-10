@@ -11,7 +11,7 @@
                 <form action="{{ route('categories.update', $category) }}" method="POST">
                     @csrf
                     @method('PUT')
-                    
+
                     <div class="space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Category Name *</label>

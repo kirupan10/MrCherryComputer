@@ -17,8 +17,8 @@
             <!-- Search Bar -->
             <div class="bg-white shadow-sm rounded-lg p-4 mb-6">
                 <form method="GET" action="{{ route('customers.index') }}" class="flex gap-4">
-                    <input type="text" name="search" value="{{ request('search') }}" 
-                        placeholder="Search by name, email, or phone..." 
+                    <input type="text" name="search" value="{{ request('search') }}"
+                        placeholder="Search by name, email, or phone..."
                         class="flex-1 border-gray-300 rounded-lg">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg">
                         Search
@@ -77,7 +77,7 @@
                                     <a href="{{ route('customers.edit', $customer) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
                                     @endcan
                                     @can('customer-delete')
-                                    <form action="{{ route('customers.destroy', $customer) }}" method="POST" 
+                                    <form action="{{ route('customers.destroy', $customer) }}" method="POST"
                                         onsubmit="return confirm('Are you sure you want to delete this customer?')">
                                         @csrf
                                         @method('DELETE')

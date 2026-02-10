@@ -42,7 +42,7 @@
                                     <a href="{{ route('units.edit', $unit) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
                                     @endcan
                                     @can('unit-delete')
-                                    <form action="{{ route('units.destroy', $unit) }}" method="POST" 
+                                    <form action="{{ route('units.destroy', $unit) }}" method="POST"
                                         onsubmit="return confirm('Are you sure? Products using this unit will be affected.')">
                                         @csrf
                                         @method('DELETE')

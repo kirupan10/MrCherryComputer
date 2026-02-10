@@ -15,45 +15,45 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         Dashboard
                     </x-nav-link>
-                    
+
                     <x-nav-link :href="route('pos.index')" :active="request()->routeIs('pos.*')">
                         POS
                     </x-nav-link>
-                    
+
                     <x-nav-link :href="route('sales.index')" :active="request()->routeIs('sales.*')">
                         Sales
                     </x-nav-link>
-                    
+
                     @can('product-list')
                     <x-nav-link :href="route('products.index')" :active="request()->routeIs('products.*')">
                         Products
                     </x-nav-link>
                     @endcan
-                    
+
                     @can('customer-list')
                     <x-nav-link :href="route('customers.index')" :active="request()->routeIs('customers.*')">
                         Customers
                     </x-nav-link>
                     @endcan
-                    
+
                     @can('expense-list')
                     <x-nav-link :href="route('expenses.index')" :active="request()->routeIs('expenses.*')">
                         Expenses
                     </x-nav-link>
                     @endcan
-                    
+
                     @can('return-list')
                     <x-nav-link :href="route('returns.index')" :active="request()->routeIs('returns.*')">
                         Returns
                     </x-nav-link>
                     @endcan
-                    
+
                     @can('report-view')
                     <x-nav-link :href="route('reports.index')" :active="request()->routeIs('reports.*')">
                         Reports
                     </x-nav-link>
                     @endcan
-                    
+
                     @role('admin')
                     <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')">
                         Users

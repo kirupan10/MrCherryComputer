@@ -63,7 +63,7 @@
             <!-- Purchase History -->
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Purchase History</h3>
-                
+
                 @if($sales->count() > 0)
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
@@ -89,7 +89,7 @@
                                     ₹{{ number_format($sale->total_amount, 2) }}
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                         {{ $sale->payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
                                         {{ ucfirst($sale->payment_status) }}
                                     </span>
@@ -111,7 +111,7 @@
                         </tfoot>
                     </table>
                 </div>
-                
+
                 <div class="mt-4">
                     {{ $sales->links() }}
                 </div>

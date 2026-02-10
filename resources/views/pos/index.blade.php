@@ -13,8 +13,8 @@
                     <!-- Search Bar -->
                     <div class="bg-white shadow-sm rounded-lg p-4 mb-4">
                         <div class="relative">
-                            <input type="text" id="product-search" 
-                                placeholder="Search product by name, SKU, or barcode..." 
+                            <input type="text" id="product-search"
+                                placeholder="Search product by name, SKU, or barcode..."
                                 class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                             <svg class="absolute left-3 top-3.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
@@ -28,7 +28,7 @@
                         <h3 class="text-lg font-medium text-gray-900 mb-4">Products</h3>
                         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" id="products-grid">
                             @foreach($products as $product)
-                            <div class="border rounded-lg p-3 hover:shadow-md transition cursor-pointer product-card" 
+                            <div class="border rounded-lg p-3 hover:shadow-md transition cursor-pointer product-card"
                                  data-id="{{ $product->id }}"
                                  data-name="{{ $product->name }}"
                                  data-price="{{ $product->selling_price }}"
@@ -99,13 +99,13 @@
 
                         <!-- Action Buttons -->
                         <div class="space-y-2">
-                            <button onclick="openPaymentModal()" 
+                            <button onclick="openPaymentModal()"
                                 id="checkout-btn"
                                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                                 disabled>
                                 Proceed to Payment
                             </button>
-                            <button onclick="clearCart()" 
+                            <button onclick="clearCart()"
                                 class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg">
                                 Clear Cart
                             </button>
@@ -121,7 +121,7 @@
         <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Complete Payment</h3>
-                
+
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
@@ -141,7 +141,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Paid Amount</label>
-                        <input type="number" id="paid-amount" class="w-full border-gray-300 rounded-lg" 
+                        <input type="number" id="paid-amount" class="w-full border-gray-300 rounded-lg"
                                min="0" step="0.01" onchange="calculateChange()">
                     </div>
 
@@ -157,11 +157,11 @@
                 </div>
 
                 <div class="mt-6 flex gap-2">
-                    <button onclick="completeSale()" 
+                    <button onclick="completeSale()"
                         class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg">
                         Complete Sale
                     </button>
-                    <button onclick="closePaymentModal()" 
+                    <button onclick="closePaymentModal()"
                         class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-lg">
                         Cancel
                     </button>
@@ -173,18 +173,18 @@
     @push('scripts')
     <script>
         let cart = [];
-        
+
         // Product search
         let searchTimeout;
         document.getElementById('product-search').addEventListener('input', function(e) {
             clearTimeout(searchTimeout);
             const query = e.target.value;
-            
+
             if (query.length < 2) {
                 document.getElementById('search-results').classList.add('hidden');
                 return;
             }
-            
+
             searchTimeout = setTimeout(() => {
                 fetch(`/pos/search-products?q=${encodeURIComponent(query)}`)
                     .then(response => response.json())
@@ -193,7 +193,7 @@
                     });
             }, 300);
         });
-        
+
         function displaySearchResults(products) {
             const resultsDiv = document.getElementById('search-results');
             if (products.length === 0) {
@@ -201,9 +201,9 @@
                 resultsDiv.classList.remove('hidden');
                 return;
             }
-            
+
             resultsDiv.innerHTML = products.map(product => `
-                <div class="p-2 hover:bg-gray-100 cursor-pointer border-b" 
+                <div class="p-2 hover:bg-gray-100 cursor-pointer border-b"
                      onclick='addToCartFromSearch(${JSON.stringify(product)})'>
                     <div class="flex justify-between items-center">
                         <div>
@@ -216,10 +216,10 @@
             `).join('');
             resultsDiv.classList.remove('hidden');
         }
-        
+
         function addToCartFromSearch(product) {
             const existingItem = cart.find(item => item.product_id === product.id);
-            
+
             if (existingItem) {
                 if (existingItem.quantity >= product.stock) {
                     alert('Insufficient stock!');
@@ -236,12 +236,12 @@
                     stock: product.stock
                 });
             }
-            
+
             updateCart();
             document.getElementById('product-search').value = '';
             document.getElementById('search-results').classList.add('hidden');
         }
-        
+
         function addToCart(element) {
             const product = {
                 product_id: parseInt(element.dataset.id),
@@ -251,14 +251,14 @@
                 quantity: 1,
                 stock: parseInt(element.dataset.stock)
             };
-            
+
             if (product.stock <= 0) {
                 alert('Out of stock!');
                 return;
             }
-            
+
             const existingItem = cart.find(item => item.product_id === product.product_id);
-            
+
             if (existingItem) {
                 if (existingItem.quantity >= product.stock) {
                     alert('Insufficient stock!');
@@ -268,24 +268,24 @@
             } else {
                 cart.push(product);
             }
-            
+
             updateCart();
         }
-        
+
         function updateCart() {
             const cartDiv = document.getElementById('cart-items');
-            
+
             if (cart.length === 0) {
                 cartDiv.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">No items in cart</p>';
                 document.getElementById('checkout-btn').disabled = true;
                 updateTotals();
                 return;
             }
-            
+
             cartDiv.innerHTML = cart.map((item, index) => {
                 const itemTotal = item.price * item.quantity;
                 const itemTax = (itemTotal * item.tax_percentage) / 100;
-                
+
                 return `
                     <div class="flex items-center justify-between py-2" data-index="${index}">
                         <div class="flex-1">
@@ -293,12 +293,12 @@
                             <p class="text-xs text-gray-500">₹${item.price.toFixed(2)} × ${item.quantity}</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button onclick="updateQuantity(${index}, -1)" 
+                            <button onclick="updateQuantity(${index}, -1)"
                                 class="bg-gray-200 hover:bg-gray-300 rounded px-2 py-1 text-sm">-</button>
                             <span class="text-sm font-medium w-8 text-center">${item.quantity}</span>
-                            <button onclick="updateQuantity(${index}, 1)" 
+                            <button onclick="updateQuantity(${index}, 1)"
                                 class="bg-gray-200 hover:bg-gray-300 rounded px-2 py-1 text-sm">+</button>
-                            <button onclick="removeFromCart(${index})" 
+                            <button onclick="removeFromCart(${index})"
                                 class="text-red-600 hover:text-red-800 ml-2">
                                 <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -308,105 +308,105 @@
                     </div>
                 `;
             }).join('');
-            
+
             document.getElementById('checkout-btn').disabled = false;
             updateTotals();
         }
-        
+
         function updateQuantity(index, change) {
             const item = cart[index];
             const newQuantity = item.quantity + change;
-            
+
             if (newQuantity <= 0) {
                 removeFromCart(index);
                 return;
             }
-            
+
             if (newQuantity > item.stock) {
                 alert('Insufficient stock!');
                 return;
             }
-            
+
             item.quantity = newQuantity;
             updateCart();
         }
-        
+
         function removeFromCart(index) {
             cart.splice(index, 1);
             updateCart();
         }
-        
+
         function clearCart() {
             if (confirm('Clear all items from cart?')) {
                 cart = [];
                 updateCart();
             }
         }
-        
+
         function updateTotals() {
             let subtotal = 0;
             let taxAmount = 0;
-            
+
             cart.forEach(item => {
                 const itemSubtotal = item.price * item.quantity;
                 const itemTax = (itemSubtotal * item.tax_percentage) / 100;
                 subtotal += itemSubtotal;
                 taxAmount += itemTax;
             });
-            
+
             const discount = parseFloat(document.getElementById('discount-input').value) || 0;
             const total = subtotal + taxAmount - discount;
-            
+
             document.getElementById('subtotal').textContent = subtotal.toFixed(2);
             document.getElementById('tax-amount').textContent = taxAmount.toFixed(2);
             document.getElementById('total-amount').textContent = total.toFixed(2);
         }
-        
+
         function openPaymentModal() {
             if (cart.length === 0) return;
-            
+
             const total = parseFloat(document.getElementById('total-amount').textContent);
             document.getElementById('modal-total').value = `₹${total.toFixed(2)}`;
             document.getElementById('paid-amount').value = total.toFixed(2);
             document.getElementById('change-amount').value = '₹0.00';
             document.getElementById('payment-modal').classList.remove('hidden');
         }
-        
+
         function closePaymentModal() {
             document.getElementById('payment-modal').classList.add('hidden');
         }
-        
+
         function calculateChange() {
             const total = parseFloat(document.getElementById('total-amount').textContent);
             const paid = parseFloat(document.getElementById('paid-amount').value) || 0;
             const change = Math.max(0, paid - total);
             document.getElementById('change-amount').value = `₹${change.toFixed(2)}`;
         }
-        
+
         function completeSale() {
             const customerId = document.getElementById('customer-select').value || null;
             const paymentMethod = document.getElementById('payment-method').value;
             const paidAmount = parseFloat(document.getElementById('paid-amount').value);
             const notes = document.getElementById('sale-notes').value;
-            
+
             const subtotal = parseFloat(document.getElementById('subtotal').textContent);
             const taxAmount = parseFloat(document.getElementById('tax-amount').textContent);
             const discount = parseFloat(document.getElementById('discount-input').value) || 0;
             const totalAmount = parseFloat(document.getElementById('total-amount').textContent);
             const changeAmount = paidAmount - totalAmount;
-            
+
             if (paidAmount < totalAmount) {
                 alert('Paid amount is less than total amount!');
                 return;
             }
-            
+
             const items = cart.map(item => ({
                 product_id: item.product_id,
                 quantity: item.quantity,
                 price: item.price,
                 tax_amount: (item.price * item.quantity * item.tax_percentage) / 100
             }));
-            
+
             const saleData = {
                 customer_id: customerId,
                 items: items,
@@ -419,7 +419,7 @@
                 change_amount: changeAmount,
                 notes: notes
             };
-            
+
             fetch('/pos/process-sale', {
                 method: 'POST',
                 headers: {

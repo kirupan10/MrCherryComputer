@@ -10,7 +10,7 @@
             <div class="bg-white shadow-sm rounded-lg p-6">
                 <form action="{{ route('categories.store') }}" method="POST">
                     @csrf
-                    
+
                     <div class="space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Category Name *</label>
