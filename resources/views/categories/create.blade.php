@@ -22,7 +22,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Parent Category</label>
                             <select name="parent_id" class="w-full border-gray-300 rounded-lg">
                                 <option value="">None (Top Level)</option>
-                                @foreach($categories as $cat)
+                                @foreach($parentCategories as $cat)
                                 <option value="{{ $cat->id }}" {{ old('parent_id') == $cat->id ? 'selected' : '' }}>
                                     {{ $cat->name }}
                                 </option>

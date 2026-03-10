@@ -31,8 +31,8 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Category *</label>
-                            <select name="category_id" required class="w-full border-gray-300 rounded-lg">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                            <select name="category_id" class="w-full border-gray-300 rounded-lg">
                                 <option value="">Select Category</option>
                                 @foreach($categories as $category)
                                 <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
