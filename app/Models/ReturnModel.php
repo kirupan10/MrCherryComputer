@@ -72,4 +72,9 @@ class ReturnModel extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function processedBy()
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 }

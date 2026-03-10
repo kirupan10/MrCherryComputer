@@ -9,14 +9,25 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class SaleController extends Controller
 {
+    private function userHasRole(string $role): bool
+    {
+        $user = Auth::user();
+
+        if (!$user || !method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        return (bool) call_user_func([$user, 'hasRole'], $role);
+    }
+
     public function index(Request $request)
     {
-        $query = Sale::with(['customer', 'soldBy', 'payments'])
+        $query = Sale::with(['customer', 'user', 'payments'])
             ->withCount('items');
 
         // Role-based filtering
-        if (Auth::user()->hasRole('cashier')) {
-            $query->where('sold_by', Auth::id());
+        if ($this->userHasRole('cashier')) {
+            $query->where('created_by', Auth::id());
         }
 
         if ($request->filled('search')) {
@@ -30,23 +41,23 @@ class SaleController extends Controller
             });
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
         }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('created_at', '>=', $request->date_from);
+        if ($request->filled('from_date')) {
+            $query->whereDate('sale_date', '>=', $request->from_date);
         }
 
-        if ($request->filled('date_to')) {
-            $query->whereDate('created_at', '<=', $request->date_to);
+        if ($request->filled('to_date')) {
+            $query->whereDate('sale_date', '<=', $request->to_date);
         }
 
         $sales = $query->latest()->paginate(20);
 
         $stats = [
             'total_sales' => Sale::sum('total_amount'),
-            'today_sales' => Sale::whereDate('created_at', today())->sum('total_amount'),
+            'today_sales' => Sale::whereDate('sale_date', today())->sum('total_amount'),
             'completed_count' => Sale::where('status', 'completed')->count(),
         ];
 
@@ -56,30 +67,64 @@ class SaleController extends Controller
     public function show(Sale $sale)
     {
         // Authorization check
-        if (Auth::user()->hasRole('cashier') && $sale->sold_by !== Auth::id()) {
+        if ($this->userHasRole('cashier') && $sale->created_by !== Auth::id()) {
             abort(403, 'Unauthorized access to this sale.');
         }
 
-        $sale->load(['customer', 'items.product.unit', 'payments', 'soldBy']);
+        $sale->load(['customer', 'items.product.unit', 'payments', 'user']);
 
         return view('sales.show', compact('sale'));
     }
 
     public function edit(Sale $sale)
     {
-        // Only allow editing pending or draft sales
-        if (!in_array($sale->status, ['pending', 'draft'])) {
-            return back()->withErrors(['error' => 'Cannot edit completed sales.']);
+        if (!in_array($sale->status, ['pending', 'cancelled'])) {
+            return back()->withErrors(['error' => 'Only pending or cancelled sales can be edited.']);
         }
 
         // Authorization check
-        if (Auth::user()->hasRole('cashier') && $sale->sold_by !== Auth::id()) {
+        if ($this->userHasRole('cashier') && $sale->created_by !== Auth::id()) {
             abort(403, 'Unauthorized access to this sale.');
         }
 
-        $sale->load(['customer', 'items.product']);
+        $sale->load(['customer', 'items.product', 'payments']);
 
         return view('sales.edit', compact('sale'));
+    }
+
+    public function update(Request $request, Sale $sale)
+    {
+        if (!in_array($sale->status, ['pending', 'cancelled'])) {
+            return back()->withErrors(['error' => 'Only pending or cancelled sales can be updated.']);
+        }
+
+        if ($this->userHasRole('cashier') && $sale->created_by !== Auth::id()) {
+            abort(403, 'Unauthorized access to this sale.');
+        }
+
+        $validated = $request->validate([
+            'customer_id' => 'nullable|exists:customers,id',
+            'payment_method' => 'required|in:cash,card,upi,bank_transfer,mixed',
+            'payment_status' => 'required|in:paid,partial,unpaid',
+            'paid_amount' => 'required|numeric|min:0',
+            'status' => 'required|in:pending,completed,cancelled',
+            'notes' => 'nullable|string',
+        ]);
+
+        $dueAmount = max(0, (float) $sale->total_amount - (float) $validated['paid_amount']);
+
+        $sale->update([
+            'customer_id' => $validated['customer_id'] ?? null,
+            'payment_method' => $validated['payment_method'],
+            'payment_status' => $validated['payment_status'],
+            'paid_amount' => $validated['paid_amount'],
+            'due_amount' => $dueAmount,
+            'status' => $validated['status'],
+            'notes' => $validated['notes'] ?? null,
+        ]);
+
+        return redirect()->route('sales.show', $sale)
+            ->with('success', 'Sale details updated successfully.');
     }
 
     public function updateStatus(Request $request, Sale $sale)
@@ -103,7 +148,7 @@ class SaleController extends Controller
             ->findOrFail($id);
 
         // Authorization check
-        if (Auth::user()->hasRole('cashier') && $sale->sold_by !== Auth::id()) {
+        if ($this->userHasRole('cashier') && $sale->created_by !== Auth::id()) {
             abort(403, 'Unauthorized access to this invoice.');
         }
 
@@ -116,7 +161,7 @@ class SaleController extends Controller
             ->findOrFail($id);
 
         // Authorization check
-        if (Auth::user()->hasRole('cashier') && $sale->sold_by !== Auth::id()) {
+        if ($this->userHasRole('cashier') && $sale->created_by !== Auth::id()) {
             abort(403, 'Unauthorized access to this invoice.');
         }
 
@@ -127,7 +172,7 @@ class SaleController extends Controller
     public function destroy(Sale $sale)
     {
         // Only admin can delete sales
-        if (!Auth::user()->hasRole('admin')) {
+        if (!$this->userHasRole('admin')) {
             abort(403, 'Only administrators can delete sales.');
         }
 

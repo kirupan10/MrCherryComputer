@@ -48,8 +48,8 @@ class POSController extends Controller
                     'barcode' => $product->barcode,
                     'price' => $product->selling_price,
                     'tax_percentage' => $product->tax_percentage,
-                    'unit' => $product->unit->name,
-                    'category' => $product->category->name,
+                    'unit' => $product->unit?->name,
+                    'category' => $product->category?->name,
                     'stock' => $product->stock?->quantity ?? 0,
                     'image' => $product->image ? asset('storage/' . $product->image) : null,
                 ];
@@ -63,7 +63,8 @@ class POSController extends Controller
         $validated = $request->validate([
             'customer_id' => 'nullable|exists:customers,id',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => 'nullable|exists:products,id',
+            'items.*.manual_name' => 'nullable|string|max:255',
             'items.*.quantity' => 'required|numeric|min:0.01',
             'items.*.price' => 'required|numeric|min:0',
             'items.*.tax_amount' => 'nullable|numeric|min:0',
@@ -71,7 +72,7 @@ class POSController extends Controller
             'tax_amount' => 'required|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0',
-            'payment_method' => 'required|in:cash,card,upi,bank_transfer,cheque',
+            'payment_method' => 'required|in:cash,card,upi,bank_transfer,mixed',
             'paid_amount' => 'required|numeric|min:0',
             'change_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
@@ -81,70 +82,93 @@ class POSController extends Controller
         try {
             // Check stock availability
             foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
-                $stock = $product->stock;
+                if (!empty($item['product_id'])) {
+                    $product = Product::find($item['product_id']);
+                    $stock = $product?->stock;
 
-                if (!$stock || $stock->quantity < $item['quantity']) {
-                    throw new \Exception("Insufficient stock for {$product->name}");
+                    if (!$product || !$stock || $stock->quantity < $item['quantity']) {
+                        throw new \Exception("Insufficient stock for {$product?->name}");
+                    }
                 }
+            }
+
+            $paymentStatus = 'paid';
+            if ($validated['paid_amount'] <= 0) {
+                $paymentStatus = 'unpaid';
+            } elseif ($validated['paid_amount'] < $validated['total_amount']) {
+                $paymentStatus = 'partial';
             }
 
             // Create sale
             $sale = Sale::create([
                 'customer_id' => $validated['customer_id'],
+                'sale_date' => now(),
                 'subtotal' => $validated['subtotal'],
                 'tax_amount' => $validated['tax_amount'],
+                'discount_type' => null,
+                'discount_value' => 0,
                 'discount_amount' => $validated['discount_amount'] ?? 0,
                 'total_amount' => $validated['total_amount'],
+                'paid_amount' => $validated['paid_amount'],
+                'due_amount' => max(0, $validated['total_amount'] - $validated['paid_amount']),
+                'payment_status' => $paymentStatus,
+                'payment_method' => $validated['payment_method'],
                 'status' => 'completed',
                 'notes' => $validated['notes'],
-                'sold_by' => Auth::id(),
+                'created_by' => Auth::id(),
             ]);
 
             // Create sale items and update stock
             foreach ($validated['items'] as $item) {
-                $product = Product::find($item['product_id']);
+                $product = !empty($item['product_id']) ? Product::find($item['product_id']) : null;
+                $itemSubtotal = $item['price'] * $item['quantity'];
+                $itemTax = $item['tax_amount'] ?? 0;
 
                 SaleItem::create([
                     'sale_id' => $sale->id,
-                    'product_id' => $item['product_id'],
+                    'product_id' => $item['product_id'] ?? null,
+                    'product_name' => $product?->name ?? $item['manual_name'],
                     'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'tax_amount' => $item['tax_amount'] ?? 0,
-                    'total' => ($item['price'] * $item['quantity']) + ($item['tax_amount'] ?? 0),
+                    'unit_price' => $item['price'],
+                    'tax_percentage' => 0,
+                    'tax_amount' => $itemTax,
+                    'discount_amount' => 0,
+                    'subtotal' => $itemSubtotal,
+                    'total' => $itemSubtotal + $itemTax,
                 ]);
 
-                // Update stock
-                $stock = $product->stock;
-                $previousQuantity = $stock->quantity;
-                $newQuantity = $previousQuantity - $item['quantity'];
+                if ($product) {
+                    $stock = $product->stock;
+                    $previousQuantity = $stock->quantity;
+                    $newQuantity = $previousQuantity - $item['quantity'];
 
-                $stock->update([
-                    'quantity' => $newQuantity,
-                    'last_updated_by' => Auth::id(),
-                ]);
+                    $stock->update([
+                        'quantity' => $newQuantity,
+                        'last_updated_by' => Auth::id(),
+                    ]);
 
-                // Log stock movement
-                StockLog::create([
-                    'product_id' => $product->id,
-                    'type' => 'out',
-                    'quantity' => $item['quantity'],
-                    'previous_quantity' => $previousQuantity,
-                    'current_quantity' => $newQuantity,
-                    'reference_type' => 'sale',
-                    'reference_id' => $sale->id,
-                    'notes' => "Sale invoice: {$sale->invoice_number}",
-                    'created_by' => Auth::id(),
-                ]);
+                    StockLog::create([
+                        'product_id' => $product->id,
+                        'type' => 'out',
+                        'quantity' => $item['quantity'],
+                        'previous_quantity' => $previousQuantity,
+                        'current_quantity' => $newQuantity,
+                        'reference_type' => 'sale',
+                        'reference_id' => $sale->id,
+                        'notes' => "Sale invoice: {$sale->invoice_number}",
+                        'created_by' => Auth::id(),
+                    ]);
+                }
             }
 
             // Create payment
             Payment::create([
                 'sale_id' => $sale->id,
+                'payment_date' => now(),
                 'payment_method' => $validated['payment_method'],
                 'amount' => $validated['paid_amount'],
-                'status' => 'completed',
-                'received_by' => Auth::id(),
+                'notes' => $validated['notes'] ?? null,
+                'created_by' => Auth::id(),
             ]);
 
             DB::commit();
@@ -166,19 +190,19 @@ class POSController extends Controller
 
     public function printInvoice($id)
     {
-        $sale = Sale::with(['customer', 'items.product.unit', 'payments', 'soldBy'])
+        $sale = Sale::with(['customer', 'items.product.unit', 'payments', 'user'])
             ->findOrFail($id);
 
-        $pdf = Pdf::loadView('pos.invoice', compact('sale'));
+        $pdf = Pdf::loadView('sales.invoice-pdf', compact('sale'));
         return $pdf->download("invoice-{$sale->invoice_number}.pdf");
     }
 
     public function thermalInvoice($id)
     {
-        $sale = Sale::with(['customer', 'items.product.unit', 'payments', 'soldBy'])
+        $sale = Sale::with(['customer', 'items.product.unit', 'payments', 'user'])
             ->findOrFail($id);
 
-        $pdf = Pdf::loadView('pos.thermal-invoice', compact('sale'))
+        $pdf = Pdf::loadView('sales.invoice-pdf', compact('sale'))
             ->setPaper([0, 0, 226.77, 841.89], 'portrait'); // 80mm width
 
         return $pdf->download("receipt-{$sale->invoice_number}.pdf");

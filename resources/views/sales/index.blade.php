@@ -90,6 +90,9 @@
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end gap-2">
                                     <a href="{{ route('sales.show', $sale) }}" class="text-blue-600 hover:text-blue-900">View</a>
+                                    @if(in_array($sale->status, ['pending', 'cancelled']))
+                                    <a href="{{ route('sales.edit', $sale) }}" class="text-yellow-600 hover:text-yellow-800">Edit</a>
+                                    @endif
                                     <a href="{{ route('sales.invoice', $sale) }}" target="_blank" class="text-green-600 hover:text-green-900">Invoice</a>
                                 </div>
                             </td>

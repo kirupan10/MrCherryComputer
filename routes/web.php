@@ -42,6 +42,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Sales - All roles can view sales (with role-based filtering in controller)
     Route::resource('sales', SaleController::class)->only(['index', 'show']);
+    Route::put('/sales/{sale}', [SaleController::class, 'update'])->name('sales.update');
     Route::get('/sales/{sale}/invoice', [SaleController::class, 'invoice'])->name('sales.invoice');
     Route::get('/sales/{sale}/download', [SaleController::class, 'downloadInvoice'])->name('sales.download');
 
@@ -68,6 +69,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Returns
         Route::resource('returns', ReturnController::class);
+        Route::put('/returns/{return}', [ReturnController::class, 'update'])->name('returns.update');
         Route::get('/returns-search-sale', [ReturnController::class, 'searchSale'])->name('returns.search-sale');
         Route::post('/returns/{return}/complete', [ReturnController::class, 'complete'])->name('returns.complete');
         Route::post('/returns/{return}/cancel', [ReturnController::class, 'cancel'])->name('returns.cancel');

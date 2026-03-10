@@ -4,10 +4,18 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Sale Details - {{ $sale->invoice_number }}
             </h2>
-            <a href="{{ route('sales.invoice', $sale) }}" target="_blank"
-                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
-                Print Invoice
-            </a>
+            <div class="flex gap-2">
+                @if(in_array($sale->status, ['pending', 'cancelled']))
+                <a href="{{ route('sales.edit', $sale) }}"
+                    class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">
+                    Edit Sale
+                </a>
+                @endif
+                <a href="{{ route('sales.invoice', $sale) }}" target="_blank"
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
+                    Print Invoice
+                </a>
+            </div>
         </div>
     </x-slot>
 

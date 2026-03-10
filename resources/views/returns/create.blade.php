@@ -11,7 +11,7 @@
             <div class="bg-white shadow-sm rounded-lg p-6 mb-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Find Sale</h3>
                 <div class="flex gap-4">
-                    <input type="text" id="invoice-search" placeholder="Enter Invoice Number..." 
+                    <input type="text" id="invoice-search" placeholder="Enter Invoice Number..."
                         class="flex-1 border-gray-300 rounded-lg">
                     <button onclick="searchSale()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
                         Search
@@ -67,7 +67,6 @@
                             <select name="refund_method" required class="w-full border-gray-300 rounded-lg">
                                 <option value="cash">Cash</option>
                                 <option value="card">Card</option>
-                                <option value="upi">UPI</option>
                                 <option value="store_credit">Store Credit</option>
                             </select>
                         </div>
@@ -105,7 +104,7 @@
         async function searchSale() {
             const invoice = document.getElementById('invoice-search').value.trim();
             const messageDiv = document.getElementById('search-message');
-            
+
             if (!invoice) {
                 messageDiv.className = 'mt-2 text-sm text-red-600';
                 messageDiv.textContent = 'Please enter an invoice number';
@@ -113,9 +112,9 @@
             }
 
             try {
-                const response = await fetch(`/returns/search-sale?invoice=${invoice}`);
+                const response = await fetch(`{{ route('returns.search-sale') }}?invoice=${invoice}`);
                 const data = await response.json();
-                
+
                 if (data.success) {
                     saleData = data.sale;
                     displaySaleDetails();
@@ -142,7 +141,7 @@
             const itemsContainer = document.getElementById('items-container');
             itemsContainer.innerHTML = saleData.items.map(item => `
                 <div class="flex items-center gap-4 p-4 border rounded-lg mb-2">
-                    <input type="checkbox" name="items[${item.id}][selected]" value="1" 
+                    <input type="checkbox" name="items[${item.id}][selected]" value="1"
                         onchange="updateRefund()" class="return-item-checkbox rounded border-gray-300">
                     <div class="flex-1">
                         <div class="font-medium">${item.product.name}</div>
@@ -150,9 +149,9 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <label class="text-sm">Return Qty:</label>
-                        <input type="number" name="items[${item.id}][quantity]" 
-                            min="0" max="${item.quantity}" value="0" 
-                            onchange="updateRefund()" 
+                        <input type="number" name="items[${item.id}][quantity]"
+                            min="0" max="${item.quantity}" value="0"
+                            onchange="updateRefund()"
                             class="return-quantity w-20 border-gray-300 rounded">
                     </div>
                     <div class="font-semibold w-24 text-right">
@@ -173,14 +172,14 @@
                     const price = parseFloat(subtotalSpan.dataset.price);
                     const quantity = parseInt(quantityInput.value) || 0;
                     const subtotal = price * quantity;
-                    
+
                     subtotalSpan.textContent = `₹${subtotal.toFixed(2)}`;
                     total += subtotal;
                 } else {
                     document.querySelectorAll('.item-subtotal')[index].textContent = '₹0.00';
                 }
             });
-            
+
             document.getElementById('refund-total').textContent = `₹${total.toFixed(2)}`;
         }
     </script>

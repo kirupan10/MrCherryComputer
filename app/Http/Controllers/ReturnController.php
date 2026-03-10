@@ -15,9 +15,20 @@ use Illuminate\Support\Facades\DB;
 
 class ReturnController extends Controller
 {
+    private function userHasRole(string $role): bool
+    {
+        $user = Auth::user();
+
+        if (!$user || !method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        return (bool) call_user_func([$user, 'hasRole'], $role);
+    }
+
     public function index(Request $request)
     {
-        $query = ReturnModel::with(['sale.customer', 'processedBy'])
+        $query = ReturnModel::with(['sale.customer', 'creator'])
             ->withCount('items');
 
         if ($request->filled('search')) {
@@ -66,6 +77,26 @@ class ReturnController extends Controller
 
     public function searchSale(Request $request)
     {
+        $invoice = $request->input('invoice');
+        if ($invoice) {
+            $sale = Sale::with(['customer', 'items.product'])
+                ->where('status', 'completed')
+                ->where('invoice_number', $invoice)
+                ->first();
+
+            if (!$sale) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sale not found',
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'sale' => $sale,
+            ]);
+        }
+
         $search = $request->input('q', '');
 
         $sales = Sale::with(['customer', 'items.product'])
@@ -108,13 +139,8 @@ class ReturnController extends Controller
             'sale_id' => 'required|exists:sales,id',
             'return_date' => 'required|date',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|numeric|min:0.01',
-            'items.*.price' => 'required|numeric|min:0',
-            'items.*.reason' => 'nullable|string',
-            'total_amount' => 'required|numeric|min:0',
-            'refund_method' => 'required|in:cash,card,upi,bank_transfer,store_credit',
-            'notes' => 'nullable|string',
+            'refund_method' => 'required|in:cash,card,store_credit',
+            'reason' => 'required|string',
         ]);
 
         DB::beginTransaction();
@@ -122,45 +148,91 @@ class ReturnController extends Controller
             // Validate return quantities against original sale
             $sale = Sale::with('items')->findOrFail($validated['sale_id']);
 
-            foreach ($validated['items'] as $returnItem) {
-                $saleItem = $sale->items->firstWhere('product_id', $returnItem['product_id']);
-                if (!$saleItem) {
-                    throw new \Exception('Product not found in original sale.');
+            $selectedItems = [];
+            foreach ($validated['items'] as $saleItemId => $returnItem) {
+                if (empty($returnItem['selected'])) {
+                    continue;
                 }
 
-                // Check already returned quantity
+                $quantity = (float) ($returnItem['quantity'] ?? 0);
+                if ($quantity <= 0) {
+                    continue;
+                }
+
+                $saleItem = $sale->items->firstWhere('id', (int) $saleItemId);
+                if (!$saleItem) {
+                    throw new \Exception('Invalid sale item selected.');
+                }
+
                 $alreadyReturned = ReturnItem::whereHas('return', function ($query) use ($validated) {
                     $query->where('sale_id', $validated['sale_id'])
                         ->where('status', 'completed');
-                })->where('product_id', $returnItem['product_id'])
-                  ->sum('quantity');
+                })->where('sale_item_id', $saleItem->id)
+                    ->sum('quantity');
 
-                if (($alreadyReturned + $returnItem['quantity']) > $saleItem->quantity) {
-                    $product = Product::find($returnItem['product_id']);
-                    throw new \Exception("Return quantity exceeds available quantity for {$product->name}.");
+                if (($alreadyReturned + $quantity) > $saleItem->quantity) {
+                    throw new \Exception("Return quantity exceeds available quantity for {$saleItem->product_name}.");
                 }
+
+                $selectedItems[] = [
+                    'sale_item' => $saleItem,
+                    'quantity' => $quantity,
+                ];
             }
+
+            if (count($selectedItems) === 0) {
+                throw new \Exception('Please select at least one item with quantity to return.');
+            }
+
+            $subtotal = collect($selectedItems)->sum(function ($item) {
+                return $item['quantity'] * (float) $item['sale_item']->unit_price;
+            });
+
+            $taxAmount = collect($selectedItems)->sum(function ($item) {
+                $saleItem = $item['sale_item'];
+                if ((float) $saleItem->quantity <= 0) {
+                    return 0;
+                }
+                $taxPerUnit = (float) $saleItem->tax_amount / (float) $saleItem->quantity;
+                return $taxPerUnit * $item['quantity'];
+            });
+
+            $totalAmount = $subtotal + $taxAmount;
 
             // Create return
             $return = ReturnModel::create([
                 'sale_id' => $validated['sale_id'],
+                'customer_id' => $sale->customer_id,
                 'return_date' => $validated['return_date'],
-                'total_amount' => $validated['total_amount'],
+                'subtotal' => $subtotal,
+                'tax_amount' => $taxAmount,
+                'total_amount' => $totalAmount,
+                'refund_amount' => $totalAmount,
                 'refund_method' => $validated['refund_method'],
                 'status' => 'pending',
-                'notes' => $validated['notes'],
-                'processed_by' => Auth::id(),
+                'reason' => $validated['reason'],
+                'created_by' => Auth::id(),
             ]);
 
             // Create return items
-            foreach ($validated['items'] as $item) {
+            foreach ($selectedItems as $item) {
+                $saleItem = $item['sale_item'];
+                $quantity = $item['quantity'];
+
+                $taxPerUnit = (float) $saleItem->quantity > 0
+                    ? (float) $saleItem->tax_amount / (float) $saleItem->quantity
+                    : 0;
+
                 ReturnItem::create([
                     'return_id' => $return->id,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $item['quantity'],
-                    'price' => $item['price'],
-                    'total' => $item['price'] * $item['quantity'],
-                    'reason' => $item['reason'] ?? null,
+                    'sale_item_id' => $saleItem->id,
+                    'product_id' => $saleItem->product_id,
+                    'product_name' => $saleItem->product_name,
+                    'quantity' => $quantity,
+                    'unit_price' => $saleItem->unit_price,
+                    'tax_amount' => $taxPerUnit * $quantity,
+                    'total' => ($saleItem->unit_price * $quantity) + ($taxPerUnit * $quantity),
+                    'reason' => $validated['reason'],
                 ]);
             }
 
@@ -176,8 +248,40 @@ class ReturnController extends Controller
 
     public function show(ReturnModel $return)
     {
-        $return->load(['sale.customer', 'items.product.unit', 'processedBy']);
+        $return->load(['sale.customer', 'items.product.unit', 'creator']);
         return view('returns.show', compact('return'));
+    }
+
+    public function edit(ReturnModel $return)
+    {
+        if ($return->status !== 'pending') {
+            return back()->withErrors(['error' => 'Only pending returns can be edited.']);
+        }
+
+        $return->load(['sale.customer', 'items.product']);
+        return view('returns.edit', compact('return'));
+    }
+
+    public function update(Request $request, ReturnModel $return)
+    {
+        if ($return->status !== 'pending') {
+            return back()->withErrors(['error' => 'Only pending returns can be updated.']);
+        }
+
+        $validated = $request->validate([
+            'return_date' => 'required|date',
+            'refund_method' => 'required|in:cash,card,store_credit',
+            'reason' => 'required|string',
+        ]);
+
+        $return->update([
+            'return_date' => $validated['return_date'],
+            'refund_method' => $validated['refund_method'],
+            'reason' => $validated['reason'],
+        ]);
+
+        return redirect()->route('returns.show', $return)
+            ->with('success', 'Return updated successfully.');
     }
 
     public function complete(ReturnModel $return)
@@ -221,7 +325,6 @@ class ReturnController extends Controller
 
             $return->update([
                 'status' => 'completed',
-                'completed_at' => now(),
             ]);
 
             DB::commit();
@@ -240,8 +343,8 @@ class ReturnController extends Controller
         }
 
         $return->update([
-            'status' => 'cancelled',
-            'notes' => $request->input('cancellation_reason', '') . "\n" . $return->notes,
+            'status' => 'rejected',
+            'reason' => trim(($return->reason ?? '') . "\n" . $request->input('cancellation_reason', '')),
         ]);
 
         return back()->with('success', 'Return cancelled.');
@@ -250,7 +353,7 @@ class ReturnController extends Controller
     public function destroy(ReturnModel $return)
     {
         // Only admin can delete, and only pending/cancelled returns
-        if (!Auth::user()->hasRole('admin')) {
+        if (!$this->userHasRole('admin')) {
             abort(403, 'Only administrators can delete returns.');
         }
 

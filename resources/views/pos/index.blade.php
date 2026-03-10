@@ -99,6 +99,10 @@
 
                         <!-- Action Buttons -->
                         <div class="space-y-2">
+                            <button onclick="addManualItem()"
+                                class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg">
+                                Add Manual Item
+                            </button>
                             <button onclick="openPaymentModal()"
                                 id="checkout-btn"
                                 class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
@@ -130,7 +134,7 @@
                             <option value="card">Card</option>
                             <option value="upi">UPI</option>
                             <option value="bank_transfer">Bank Transfer</option>
-                            <option value="cheque">Cheque</option>
+                            <option value="mixed">Mixed</option>
                         </select>
                     </div>
 
@@ -290,7 +294,7 @@
                     <div class="flex items-center justify-between py-2" data-index="${index}">
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-900">${item.name}</p>
-                            <p class="text-xs text-gray-500">₹${item.price.toFixed(2)} × ${item.quantity}</p>
+                                <p class="text-xs text-gray-500">₹${item.price.toFixed(2)} × ${item.quantity}${item.is_manual ? ' (Manual)' : ''}</p>
                         </div>
                         <div class="flex items-center gap-2">
                             <button onclick="updateQuantity(${index}, -1)"
@@ -333,6 +337,38 @@
 
         function removeFromCart(index) {
             cart.splice(index, 1);
+            updateCart();
+        }
+
+        function addManualItem() {
+            const name = prompt('Enter custom product/service name');
+            if (!name) {
+                return;
+            }
+
+            const price = parseFloat(prompt('Enter price', '0'));
+            if (Number.isNaN(price) || price < 0) {
+                alert('Invalid price.');
+                return;
+            }
+
+            const quantity = parseFloat(prompt('Enter quantity', '1'));
+            if (Number.isNaN(quantity) || quantity <= 0) {
+                alert('Invalid quantity.');
+                return;
+            }
+
+            cart.push({
+                product_id: null,
+                manual_name: name,
+                name: name,
+                price: price,
+                tax_percentage: 0,
+                quantity: quantity,
+                stock: Number.MAX_SAFE_INTEGER,
+                is_manual: true,
+            });
+
             updateCart();
         }
 
@@ -402,6 +438,7 @@
 
             const items = cart.map(item => ({
                 product_id: item.product_id,
+                manual_name: item.manual_name || null,
                 quantity: item.quantity,
                 price: item.price,
                 tax_amount: (item.price * item.quantity * item.tax_percentage) / 100
