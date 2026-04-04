@@ -121,9 +121,9 @@ class ReturnController extends Controller
                     'items' => $sale->items->map(function ($item) {
                         return [
                             'product_id' => $item->product_id,
-                            'product_name' => $item->product->name,
+                            'product_name' => optional($item->product)->name ?? $item->product_name,
                             'quantity' => $item->quantity,
-                            'price' => $item->price,
+                            'price' => $item->unit_price,
                             'total' => $item->total,
                         ];
                     }),
@@ -294,7 +294,12 @@ class ReturnController extends Controller
         try {
             // Update product stocks
             foreach ($return->items as $item) {
-                $product = $item->product;
+                $product = $item->product ?? Product::withTrashed()->find($item->product_id);
+
+                if (!$product) {
+                    throw new \Exception("Product no longer exists for returned item: {$item->product_name}");
+                }
+
                 $stock = $product->stock ?? Stock::create([
                     'product_id' => $product->id,
                     'quantity' => 0,
