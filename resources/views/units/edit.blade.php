@@ -21,16 +21,18 @@
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Abbreviation *</label>
-                            <input type="text" name="abbreviation" value="{{ old('abbreviation', $unit->abbreviation) }}" required
-                                class="w-full border-gray-300 rounded-lg">
+                            <input type="text" name="short_name" value="{{ old('short_name', $unit->short_name) }}"
+                                required class="w-full border-gray-300 rounded-lg">
                         </div>
                     </div>
 
                     <div class="mt-6 flex gap-4">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
                             Update Unit
                         </button>
-                        <a href="{{ route('units.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
+                        <a href="{{ route('units.index') }}"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
                             Cancel
                         </a>
                     </div>
