@@ -17,6 +17,7 @@ class UserSeeder extends Seeder
         $admin = User::create([
             'name' => 'Admin User',
             'email' => 'admin@pos.com',
+            'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'phone' => '1234567890',
             'address' => 'Admin Address',
@@ -28,6 +29,7 @@ class UserSeeder extends Seeder
         $manager = User::create([
             'name' => 'Manager User',
             'email' => 'manager@pos.com',
+            'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'phone' => '1234567891',
             'address' => 'Manager Address',
@@ -39,6 +41,7 @@ class UserSeeder extends Seeder
         $cashier = User::create([
             'name' => 'Cashier User',
             'email' => 'cashier@pos.com',
+            'email_verified_at' => now(),
             'password' => Hash::make('password'),
             'phone' => '1234567892',
             'address' => 'Cashier Address',
