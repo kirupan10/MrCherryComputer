@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Products\StoreProductRequest;
+use App\Http\Requests\Products\UpdateProductRequest;
+use App\Http\Requests\Products\UpdateProductStockRequest;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Stock;
@@ -48,24 +51,23 @@ class ProductController extends Controller
         return view('products.create', compact('categories', 'units'));
     }
 
-    public function store(Request $request)
+    public function show(Product $product)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|max:100|unique:products,sku',
-            'barcode' => 'nullable|string|max:100|unique:products,barcode',
-            'category_id' => 'nullable|exists:categories,id',
-            'unit_id' => 'required|exists:units,id',
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'purchase_price' => 'required|numeric|min:0',
-            'selling_price' => 'required|numeric|min:0',
-            'mrp' => 'nullable|numeric|min:0',
-            'tax_percentage' => 'nullable|numeric|min:0|max:100',
-            'low_stock_alert' => 'required|integer|min:0',
-            'initial_stock' => 'nullable|numeric|min:0',
-            'is_active' => 'boolean',
+        $product->load([
+            'category',
+            'unit',
+            'stock',
+            'stockLogs' => function ($query) {
+                $query->with('creator')->latest();
+            },
         ]);
+
+        return view('products.show', compact('product'));
+    }
+
+    public function store(StoreProductRequest $request)
+    {
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
@@ -116,23 +118,9 @@ class ProductController extends Controller
         return view('products.edit', compact('product', 'categories', 'units'));
     }
 
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'sku' => 'nullable|string|max:100|unique:products,sku,' . $product->id,
-            'barcode' => 'nullable|string|max:100|unique:products,barcode,' . $product->id,
-            'category_id' => 'nullable|exists:categories,id',
-            'unit_id' => 'required|exists:units,id',
-            'description' => 'nullable|string',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'purchase_price' => 'required|numeric|min:0',
-            'selling_price' => 'required|numeric|min:0',
-            'mrp' => 'nullable|numeric|min:0',
-            'tax_percentage' => 'nullable|numeric|min:0|max:100',
-            'low_stock_alert' => 'required|integer|min:0',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         // Handle image upload
         if ($request->hasFile('image')) {
@@ -151,24 +139,17 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
-        // Delete image
-        if ($product->image) {
-            Storage::disk('public')->delete($product->image);
-        }
-
+        // Soft delete the product. We do not delete the image file 
+        // to maintain historical data for past sales and receipts.
         $product->delete();
 
         return redirect()->route('products.index')
             ->with('success', 'Product deleted successfully.');
     }
 
-    public function updateStock(Request $request, Product $product)
+    public function updateStock(UpdateProductStockRequest $request, Product $product)
     {
-        $validated = $request->validate([
-            'type' => 'required|in:in,out,adjustment',
-            'quantity' => 'required|numeric|min:0',
-            'notes' => 'nullable|string',
-        ]);
+        $validated = $request->validated();
 
         DB::beginTransaction();
         try {
