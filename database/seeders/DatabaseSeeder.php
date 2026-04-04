@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             UserSeeder::class,
             UnitSeeder::class,
             ExpenseCategorySeeder::class,
+            ComputerShopDataSeeder::class,
         ]);
     }
 }
