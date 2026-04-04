@@ -4,11 +4,26 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    private function currentUserId(): ?int
+    {
+        $id = Auth::id();
+
+        return is_numeric($id) ? (int) $id : null;
+    }
+
+    private function activeAdminCount(): int
+    {
+        return User::role('admin')
+            ->where('is_active', true)
+            ->count();
+    }
+
     public function index(Request $request)
     {
         $query = User::with('roles');
@@ -45,6 +60,7 @@ class UserController extends Controller
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|exists:roles,name',
             'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
 
@@ -53,7 +69,8 @@ class UserController extends Controller
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'phone' => $validated['phone'] ?? null,
-            'is_active' => $validated['is_active'] ?? true,
+            'address' => $validated['address'] ?? null,
+            'is_active' => $request->boolean('is_active'),
         ]);
 
         $user->assignRole($validated['role']);
@@ -69,16 +86,15 @@ class UserController extends Controller
         $stats = [
             'total_sales' => $user->sales()->count(),
             'sales_amount' => $user->sales()->sum('total_amount'),
-            'expenses_created' => $user->createdExpenses()->count(),
+            'expenses_created' => $user->expenses()->count(),
             'expenses_approved' => $user->approvedExpenses()->count(),
+            'returns_processed' => $user->returns()->count(),
         ];
 
-        $recentActivities = [
-            'sales' => $user->sales()->with('customer')->latest()->take(5)->get(),
-            'expenses' => $user->createdExpenses()->with('category')->latest()->take(5)->get(),
-        ];
+        $recentSales = $user->sales()->with('customer')->latest()->take(5)->get();
+        $recentExpenses = $user->expenses()->with('category')->latest()->take(5)->get();
 
-        return view('users.show', compact('user', 'stats', 'recentActivities'));
+        return view('users.show', compact('user', 'stats', 'recentSales', 'recentExpenses'));
     }
 
     public function edit(User $user)
@@ -95,14 +111,25 @@ class UserController extends Controller
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|exists:roles,name',
             'phone' => 'nullable|string|max:20',
+            'address' => 'nullable|string',
             'is_active' => 'boolean',
         ]);
+
+        $requestedRole = $validated['role'];
+        $requestedActive = $request->boolean('is_active');
+
+        if ($user->hasRole('admin') && $user->is_active && $this->activeAdminCount() <= 1) {
+            if (!$requestedActive || $requestedRole !== 'admin') {
+                return back()->withErrors(['error' => 'You cannot deactivate or demote the last active admin account.']);
+            }
+        }
 
         $userData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'] ?? null,
-            'is_active' => $validated['is_active'] ?? $user->is_active,
+            'address' => $validated['address'] ?? null,
+            'is_active' => $requestedActive,
         ];
 
         if ($request->filled('password')) {
@@ -112,7 +139,7 @@ class UserController extends Controller
         $user->update($userData);
 
         // Sync role
-        $user->syncRoles([$validated['role']]);
+        $user->syncRoles([$requestedRole]);
 
         return redirect()->route('users.index')
             ->with('success', 'User updated successfully.');
@@ -121,12 +148,16 @@ class UserController extends Controller
     public function destroy(User $user)
     {
         // Prevent deleting yourself
-        if ($user->id === auth()->id()) {
+        if ($user->id === $this->currentUserId()) {
             return back()->withErrors(['error' => 'You cannot delete your own account.']);
         }
 
+        if ($user->hasRole('admin') && $user->is_active && $this->activeAdminCount() <= 1) {
+            return back()->withErrors(['error' => 'You cannot delete the last active admin account.']);
+        }
+
         // Check if user has related records
-        if ($user->sales()->count() > 0 || $user->createdExpenses()->count() > 0) {
+        if ($user->sales()->count() > 0 || $user->expenses()->count() > 0) {
             return back()->withErrors(['error' => 'Cannot delete user with existing records. Please deactivate instead.']);
         }
 
@@ -139,8 +170,12 @@ class UserController extends Controller
     public function toggleStatus(User $user)
     {
         // Prevent deactivating yourself
-        if ($user->id === auth()->id()) {
+        if ($user->id === $this->currentUserId()) {
             return back()->withErrors(['error' => 'You cannot deactivate your own account.']);
+        }
+
+        if ($user->hasRole('admin') && $user->is_active && $this->activeAdminCount() <= 1) {
+            return back()->withErrors(['error' => 'You cannot deactivate the last active admin account.']);
         }
 
         $user->update([
