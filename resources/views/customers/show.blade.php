@@ -40,7 +40,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Credit Limit</label>
-                        <p class="text-base text-gray-900">₹{{ number_format($customer->credit_limit, 2) }}</p>
+                        <p class="text-base text-gray-900">LKR {{ number_format($customer->credit_limit, 2) }}</p>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-500 mb-1">Address</label>
@@ -67,7 +67,8 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Lifetime Sales</p>
-                    <p class="text-lg font-bold text-gray-900 mt-1">₹{{ number_format($stats['total_sales'], 2) }}</p>
+                    <p class="text-lg font-bold text-gray-900 mt-1">LKR {{ number_format($stats['total_sales'], 2) }}
+                    </p>
                 </div>
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Lifetime Orders</p>
@@ -76,12 +77,13 @@
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Average Order Value</p>
                     <p class="text-lg font-bold text-gray-900 mt-1">
-                        ₹{{ number_format($stats['average_order_value'], 2) }}</p>
+                        LKR {{ number_format($stats['average_order_value'], 2) }}</p>
                 </div>
                 <div class="bg-white shadow-sm rounded-lg p-4">
                     <p class="text-sm text-gray-500">Last Purchase</p>
                     <p class="text-lg font-bold text-gray-900 mt-1">
-                        {{ $stats['last_purchase'] ? $stats['last_purchase']->format('d M, Y') : 'N/A' }}</p>
+                        {{ $stats['last_purchase'] ? $stats['last_purchase']->format('d M, Y') : 'N/A' }}
+                    </p>
                 </div>
             </div>
 
@@ -133,8 +135,8 @@
 
                 <div class="mb-4 text-sm text-gray-600">
                     Showing {{ $filteredStats['filtered_orders'] }} orders totaling
-                    <span
-                        class="font-semibold text-gray-900">₹{{ number_format($filteredStats['filtered_sales'], 2) }}</span>
+                    <span class="font-semibold text-gray-900">LKR
+                        {{ number_format($filteredStats['filtered_sales'], 2) }}</span>
                     for current filters.
                 </div>
 
@@ -163,12 +165,12 @@
                                             {{ $sale->sale_date->format('d M, Y') }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                            ₹{{ number_format($sale->total_amount, 2) }}
+                                            LKR {{ number_format($sale->total_amount, 2) }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-center">
                                             <span
                                                 class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                {{ $sale->payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
+                                                        {{ $sale->payment_status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
                                                 {{ ucfirst($sale->payment_status) }}
                                             </span>
                                         </td>
@@ -184,7 +186,7 @@
                                     <td colspan="2" class="px-6 py-4 text-sm font-semibold text-gray-900">Total Purchases
                                     </td>
                                     <td class="px-6 py-4 text-sm font-bold text-gray-900 text-right">
-                                        ₹{{ number_format($sales->sum('total_amount'), 2) }}
+                                        LKR {{ number_format($sales->sum('total_amount'), 2) }}
                                     </td>
                                     <td colspan="2"></td>
                                 </tr>
