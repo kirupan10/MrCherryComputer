@@ -86,7 +86,7 @@
                                 {{ $product->sku ?? 'N/A' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {{ $product->category->name }}
+                                {{ optional($product->category)->name ?? 'Uncategorized' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
                                 ₹{{ number_format($product->selling_price, 2) }}
@@ -96,9 +96,16 @@
                                     $stock = optional($product->stock)->quantity ?? 0;
                                     $isLowStock = $stock <= $product->low_stock_alert;
                                 @endphp
-                                <span class="font-medium {{ $isLowStock ? 'text-red-600' : 'text-gray-900' }}">
-                                    {{ $stock }}
-                                </span>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="font-medium {{ $isLowStock ? 'text-red-600' : 'text-gray-900' }}">
+                                        {{ $stock }}
+                                    </span>
+                                    @if($isLowStock)
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                        Low Stock
+                                    </span>
+                                    @endif
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 @if($product->is_active)
@@ -113,6 +120,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                 <div class="flex justify-end gap-2">
+                                    <a href="{{ route('products.show', $product) }}" class="text-indigo-600 hover:text-indigo-900">View</a>
                                     @can('product-edit')
                                     <a href="{{ route('products.edit', $product) }}" class="text-blue-600 hover:text-blue-900">Edit</a>
                                     @endcan
