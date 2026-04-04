@@ -6,10 +6,10 @@
             </h2>
             <div class="flex gap-2">
                 @if(in_array($sale->status, ['pending', 'cancelled']))
-                <a href="{{ route('sales.edit', $sale) }}"
-                    class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">
-                    Edit Sale
-                </a>
+                    <a href="{{ route('sales.edit', $sale) }}"
+                        class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg">
+                        Edit Sale
+                    </a>
                 @endif
                 <a href="{{ route('sales.invoice', $sale) }}" target="_blank"
                     class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg">
@@ -34,9 +34,10 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Customer</label>
-                        <p class="text-base text-gray-900">{{ optional($sale->customer)->name ?? 'Walk-in Customer' }}</p>
+                        <p class="text-base text-gray-900">{{ optional($sale->customer)->name ?? 'Walk-in Customer' }}
+                        </p>
                         @if($sale->customer && $sale->customer->phone)
-                        <p class="text-sm text-gray-500">{{ $sale->customer->phone }}</p>
+                            <p class="text-sm text-gray-500">{{ $sale->customer->phone }}</p>
                         @endif
                     </div>
                     <div>
@@ -55,30 +56,32 @@
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity
+                                </th>
                                 <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Tax</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Subtotal
+                                </th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($sale->items as $item)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ $item->product->name }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    ₹{{ number_format($item->unit_price, 2) }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    {{ $item->quantity }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    ₹{{ number_format($item->tax_amount, 2) }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                                    ₹{{ number_format($item->subtotal, 2) }}
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ $item->product->name }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                        LKR {{ number_format($item->unit_price, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                        {{ $item->quantity }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                        LKR {{ number_format($item->tax_amount, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                        LKR {{ number_format($item->subtotal, 2) }}
+                                    </td>
+                                </tr>
                             @endforeach
                         </tbody>
                     </table>
@@ -92,21 +95,21 @@
                     <div class="space-y-2">
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600">Subtotal:</span>
-                            <span class="text-gray-900">₹{{ number_format($sale->subtotal, 2) }}</span>
+                            <span class="text-gray-900">LKR {{ number_format($sale->subtotal, 2) }}</span>
                         </div>
                         <div class="flex justify-between text-sm">
                             <span class="text-gray-600">Tax:</span>
-                            <span class="text-gray-900">₹{{ number_format($sale->tax_amount, 2) }}</span>
+                            <span class="text-gray-900">LKR {{ number_format($sale->tax_amount, 2) }}</span>
                         </div>
                         @if($sale->discount_amount > 0)
-                        <div class="flex justify-between text-sm">
-                            <span class="text-gray-600">Discount:</span>
-                            <span class="text-red-600">-₹{{ number_format($sale->discount_amount, 2) }}</span>
-                        </div>
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Discount:</span>
+                                <span class="text-red-600">-LKR {{ number_format($sale->discount_amount, 2) }}</span>
+                            </div>
                         @endif
                         <div class="flex justify-between text-lg font-bold border-t pt-2">
                             <span class="text-gray-900">Total Amount:</span>
-                            <span class="text-gray-900">₹{{ number_format($sale->total_amount, 2) }}</span>
+                            <span class="text-gray-900">LKR {{ number_format($sale->total_amount, 2) }}</span>
                         </div>
                         <div class="flex justify-between text-sm mt-4">
                             <span class="text-gray-600">Payment Method:</span>
@@ -124,10 +127,10 @@
                             <span class="font-semibold {{ $statusClass }}">{{ ucfirst($sale->payment_status) }}</span>
                         </div>
                         @if($sale->notes)
-                        <div class="mt-4 pt-4 border-t">
-                            <span class="block text-sm font-medium text-gray-600 mb-1">Notes:</span>
-                            <p class="text-sm text-gray-900">{{ $sale->notes }}</p>
-                        </div>
+                            <div class="mt-4 pt-4 border-t">
+                                <span class="block text-sm font-medium text-gray-600 mb-1">Notes:</span>
+                                <p class="text-sm text-gray-900">{{ $sale->notes }}</p>
+                            </div>
                         @endif
                     </div>
                 </div>
