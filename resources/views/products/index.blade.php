@@ -89,7 +89,7 @@
                                 {{ optional($product->category)->name ?? 'Uncategorized' }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                ₹{{ number_format($product->selling_price, 2) }}
+                                LKR {{ number_format($product->selling_price, 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
                                 @php
