@@ -58,9 +58,10 @@
                         @forelse($recentExpenses as $expense)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ $expense->expense_date?->format('d M, Y') ?? 'N/A' }}</td>
+                                    {{ $expense->expense_date?->format('d M, Y') ?? 'N/A' }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    ₹{{ number_format($expense->amount, 2) }}</td>
+                                    LKR {{ number_format($expense->amount, 2) }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-center">
                                     @if($expense->status === 'approved')
                                         <span
