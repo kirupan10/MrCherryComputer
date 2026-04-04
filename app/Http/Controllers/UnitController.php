@@ -7,15 +7,41 @@ use Illuminate\Http\Request;
 
 class UnitController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $units = Unit::latest()->paginate(15);
+        $query = Unit::withCount('products');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('short_name', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
+        }
+
+        $units = $query->latest()->paginate(15)->withQueryString();
         return view('units.index', compact('units'));
     }
 
     public function create()
     {
         return view('units.create');
+    }
+
+    public function show(Unit $unit)
+    {
+        $unit->loadCount('products');
+
+        $recentProducts = $unit->products()
+            ->latest()
+            ->limit(10)
+            ->get(['id', 'name', 'sku', 'is_active']);
+
+        return view('units.show', compact('unit', 'recentProducts'));
     }
 
     public function store(Request $request)
