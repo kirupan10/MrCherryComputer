@@ -7,18 +7,42 @@ use Illuminate\Http\Request;
 
 class ExpenseCategoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $categories = ExpenseCategory::withCount('expenses')
-            ->latest()
-            ->paginate(20);
+        $query = ExpenseCategory::withCount('expenses');
 
-        return view('expense-categories.index', compact('categories'));
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status')) {
+            $query->where('is_active', $request->status === 'active');
+        }
+
+        $expenseCategories = $query->latest()->paginate(20)->withQueryString();
+
+        return view('expense-categories.index', compact('expenseCategories'));
     }
 
     public function create()
     {
         return view('expense-categories.create');
+    }
+
+    public function show(ExpenseCategory $expenseCategory)
+    {
+        $expenseCategory->loadCount('expenses');
+
+        $recentExpenses = $expenseCategory->expenses()
+            ->latest()
+            ->limit(10)
+            ->get(['id', 'expense_date', 'amount', 'status', 'description']);
+
+        return view('expense-categories.show', compact('expenseCategory', 'recentExpenses'));
     }
 
     public function store(Request $request)
