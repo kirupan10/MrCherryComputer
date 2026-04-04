@@ -72,7 +72,7 @@ class POSController extends Controller
             'tax_amount' => 'required|numeric|min:0',
             'discount_amount' => 'nullable|numeric|min:0',
             'total_amount' => 'required|numeric|min:0',
-            'payment_method' => 'required|in:cash,card,upi,bank_transfer,mixed',
+            'payment_method' => 'required|in:cash,card,upi,bank_transfer',
             'paid_amount' => 'required|numeric|min:0',
             'change_amount' => 'nullable|numeric|min:0',
             'notes' => 'nullable|string',
