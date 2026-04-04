@@ -17,6 +17,46 @@ use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
+    private function normalizeImagePath(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        $normalized = str_replace('\\\\', '/', trim($path));
+        $normalized = ltrim($normalized, '/');
+
+        if (str_starts_with($normalized, 'public/')) {
+            $normalized = substr($normalized, 7);
+        }
+
+        if (str_starts_with($normalized, 'storage/')) {
+            $normalized = substr($normalized, 8);
+        }
+
+        return $normalized;
+    }
+
+    public function image(Product $product)
+    {
+        if (!$product->image) {
+            abort(404);
+        }
+
+        $path = $this->normalizeImagePath($product->image);
+
+        if ($path && Storage::disk('public')->exists($path)) {
+            return response()->file(storage_path('app/public/' . $path));
+        }
+
+        $publicPath = public_path(ltrim((string) $product->image, '/'));
+        if (is_file($publicPath)) {
+            return response()->file($publicPath);
+        }
+
+        abort(404);
+    }
+
     public function index(Request $request)
     {
         $query = Product::with(['category', 'unit', 'stock']);
@@ -126,7 +166,10 @@ class ProductController extends Controller
         if ($request->hasFile('image')) {
             // Delete old image
             if ($product->image) {
-                Storage::disk('public')->delete($product->image);
+                $oldImagePath = $this->normalizeImagePath($product->image);
+                if ($oldImagePath) {
+                    Storage::disk('public')->delete($oldImagePath);
+                }
             }
             $validated['image'] = $request->file('image')->store('products', 'public');
         }
