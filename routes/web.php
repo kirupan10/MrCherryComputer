@@ -69,7 +69,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Returns
         Route::resource('returns', ReturnController::class);
-        Route::put('/returns/{return}', [ReturnController::class, 'update'])->name('returns.update');
         Route::get('/returns-search-sale', [ReturnController::class, 'searchSale'])->name('returns.search-sale');
         Route::post('/returns/{return}/complete', [ReturnController::class, 'complete'])->name('returns.complete');
         Route::post('/returns/{return}/cancel', [ReturnController::class, 'cancel'])->name('returns.cancel');
@@ -109,4 +108,4 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
