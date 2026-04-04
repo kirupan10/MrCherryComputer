@@ -10,16 +10,27 @@ use Illuminate\Support\Facades\Storage;
 
 class ExpenseController extends Controller
 {
+    private function userHasRole(string $role): bool
+    {
+        $user = Auth::user();
+
+        if (!$user || !method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        return (bool) call_user_func([$user, 'hasRole'], $role);
+    }
+
     public function index(Request $request)
     {
-        $query = Expense::with(['category', 'createdBy', 'approvedBy']);
+        $query = Expense::with(['category', 'creator', 'approver']);
 
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('expense_number', 'like', "%{$search}%")
-                    ->orWhere('title', 'like', "%{$search}%")
-                    ->orWhere('vendor', 'like', "%{$search}%");
+                    ->orWhere('description', 'like', "%{$search}%")
+                    ->orWhere('reference_number', 'like', "%{$search}%");
             });
         }
 
@@ -31,12 +42,12 @@ class ExpenseController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->filled('date_from')) {
-            $query->whereDate('expense_date', '>=', $request->date_from);
+        if ($request->filled('from_date')) {
+            $query->whereDate('expense_date', '>=', $request->from_date);
         }
 
-        if ($request->filled('date_to')) {
-            $query->whereDate('expense_date', '<=', $request->date_to);
+        if ($request->filled('to_date')) {
+            $query->whereDate('expense_date', '<=', $request->to_date);
         }
 
         $expenses = $query->latest('expense_date')->paginate(20);
@@ -63,30 +74,30 @@ class ExpenseController extends Controller
     {
         $validated = $request->validate([
             'expense_category_id' => 'required|exists:expense_categories,id',
-            'title' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0',
             'expense_date' => 'required|date',
-            'vendor' => 'nullable|string|max:255',
-            'payment_method' => 'required|in:cash,card,upi,bank_transfer,cheque',
+            'payment_method' => 'required|in:cash,card,bank_transfer,cheque',
             'reference_number' => 'nullable|string|max:100',
             'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'description' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'status' => 'nullable|in:pending,paid,approved',
         ]);
 
         // Handle receipt upload
         if ($request->hasFile('receipt')) {
-            $validated['receipt'] = $request->file('receipt')->store('expenses', 'public');
+            $validated['receipt_image'] = $request->file('receipt')->store('expenses', 'public');
         }
 
-        $validated['status'] = 'pending';
+        $validated['status'] = $validated['status'] ?? 'pending';
         $validated['created_by'] = Auth::id();
 
-        // Auto-approve for admin role
-        if (Auth::user()->hasRole('admin')) {
-            $validated['status'] = 'approved';
-            $validated['approved_by'] = Auth::id();
-            $validated['approved_at'] = now();
+        // Only admins can create approved expenses.
+        if (($validated['status'] ?? 'pending') === 'approved') {
+            if ($this->userHasRole('admin')) {
+                $validated['approved_by'] = Auth::id();
+            } else {
+                $validated['status'] = 'pending';
+            }
         }
 
         Expense::create($validated);
@@ -97,7 +108,7 @@ class ExpenseController extends Controller
 
     public function show(Expense $expense)
     {
-        $expense->load(['category', 'createdBy', 'approvedBy']);
+        $expense->load(['category', 'creator', 'approver']);
         return view('expenses.show', compact('expense'));
     }
 
@@ -109,7 +120,7 @@ class ExpenseController extends Controller
         }
 
         // Authorization check (only creator or admin can edit)
-        if (!Auth::user()->hasRole('admin') && $expense->created_by !== Auth::id()) {
+        if (!$this->userHasRole('admin') && $expense->created_by !== Auth::id()) {
             abort(403, 'Unauthorized access.');
         }
 
@@ -125,30 +136,41 @@ class ExpenseController extends Controller
         }
 
         // Authorization check
-        if (!Auth::user()->hasRole('admin') && $expense->created_by !== Auth::id()) {
+        if (!$this->userHasRole('admin') && $expense->created_by !== Auth::id()) {
             abort(403, 'Unauthorized access.');
         }
 
         $validated = $request->validate([
             'expense_category_id' => 'required|exists:expense_categories,id',
-            'title' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0',
             'expense_date' => 'required|date',
-            'vendor' => 'nullable|string|max:255',
-            'payment_method' => 'required|in:cash,card,upi,bank_transfer,cheque',
+            'payment_method' => 'required|in:cash,card,bank_transfer,cheque',
             'reference_number' => 'nullable|string|max:100',
             'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'description' => 'nullable|string',
-            'notes' => 'nullable|string',
+            'status' => 'nullable|in:pending,paid,approved',
         ]);
 
         // Handle receipt upload
         if ($request->hasFile('receipt')) {
             // Delete old receipt
-            if ($expense->receipt) {
-                Storage::disk('public')->delete($expense->receipt);
+            if ($expense->receipt_image) {
+                Storage::disk('public')->delete($expense->receipt_image);
             }
-            $validated['receipt'] = $request->file('receipt')->store('expenses', 'public');
+            $validated['receipt_image'] = $request->file('receipt')->store('expenses', 'public');
+        }
+
+        $targetStatus = $validated['status'] ?? $expense->status;
+
+        if ($targetStatus === 'approved') {
+            if ($this->userHasRole('admin')) {
+                $validated['approved_by'] = Auth::id();
+            } else {
+                $validated['status'] = 'pending';
+                $validated['approved_by'] = null;
+            }
+        } else {
+            $validated['approved_by'] = null;
         }
 
         $expense->update($validated);
@@ -160,7 +182,7 @@ class ExpenseController extends Controller
     public function approve(Expense $expense)
     {
         // Only admin can approve
-        if (!Auth::user()->hasRole('admin')) {
+        if (!$this->userHasRole('admin')) {
             abort(403, 'Only administrators can approve expenses.');
         }
 
@@ -171,7 +193,6 @@ class ExpenseController extends Controller
         $expense->update([
             'status' => 'approved',
             'approved_by' => Auth::id(),
-            'approved_at' => now(),
         ]);
 
         return back()->with('success', 'Expense approved successfully.');
@@ -180,7 +201,7 @@ class ExpenseController extends Controller
     public function reject(Request $request, Expense $expense)
     {
         // Only admin can reject
-        if (!Auth::user()->hasRole('admin')) {
+        if (!$this->userHasRole('admin')) {
             abort(403, 'Only administrators can reject expenses.');
         }
 
@@ -188,18 +209,20 @@ class ExpenseController extends Controller
             return back()->withErrors(['error' => 'Only pending expenses can be rejected.']);
         }
 
+        $rejectionReason = trim((string) $request->input('rejection_reason', 'Rejected by administrator'));
+
         $expense->update([
-            'status' => 'rejected',
-            'notes' => $request->input('rejection_reason', '') . "\n" . $expense->notes,
+            'status' => 'paid',
+            'description' => trim(($expense->description ?? '') . "\nRejection note: " . $rejectionReason),
         ]);
 
-        return back()->with('success', 'Expense rejected.');
+        return back()->with('success', 'Expense rejected and marked as paid.');
     }
 
     public function destroy(Expense $expense)
     {
         // Only admin can delete, and only pending/rejected expenses
-        if (!Auth::user()->hasRole('admin')) {
+        if (!$this->userHasRole('admin')) {
             abort(403, 'Only administrators can delete expenses.');
         }
 
@@ -208,8 +231,8 @@ class ExpenseController extends Controller
         }
 
         // Delete receipt
-        if ($expense->receipt) {
-            Storage::disk('public')->delete($expense->receipt);
+        if ($expense->receipt_image) {
+            Storage::disk('public')->delete($expense->receipt_image);
         }
 
         $expense->delete();
