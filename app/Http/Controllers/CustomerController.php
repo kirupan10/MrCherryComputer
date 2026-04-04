@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Customers\StoreCustomerRequest;
+use App\Http\Requests\Customers\UpdateCustomerRequest;
 use App\Models\Customer;
 use Illuminate\Http\Request;
 
@@ -32,23 +34,9 @@ class CustomerController extends Controller
         return view('customers.create');
     }
 
-    public function store(Request $request)
+    public function store(StoreCustomerRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:customers,email',
-            'phone' => 'required|string|max:20',
-            'company_name' => 'nullable|string|max:255',
-            'tax_number' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'postal_code' => 'nullable|string|max:20',
-            'country' => 'nullable|string|max:100',
-            'credit_limit' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         Customer::create($validated);
 
@@ -56,20 +44,52 @@ class CustomerController extends Controller
             ->with('success', 'Customer created successfully.');
     }
 
-    public function show(Customer $customer)
+    public function show(Request $request, Customer $customer)
     {
-        $customer->load(['sales' => function ($query) {
-            $query->with('items.product')->latest()->take(10);
-        }]);
+        $filters = $request->validate([
+            'from_date' => 'nullable|date',
+            'to_date' => 'nullable|date|after_or_equal:from_date',
+            'payment_status' => 'nullable|in:paid,partial,unpaid',
+            'status' => 'nullable|in:pending,completed,cancelled',
+        ]);
+
+        $salesQuery = $customer->sales()
+            ->with('items.product')
+            ->latest('sale_date');
+
+        if (!empty($filters['from_date'])) {
+            $salesQuery->whereDate('sale_date', '>=', $filters['from_date']);
+        }
+
+        if (!empty($filters['to_date'])) {
+            $salesQuery->whereDate('sale_date', '<=', $filters['to_date']);
+        }
+
+        if (!empty($filters['payment_status'])) {
+            $salesQuery->where('payment_status', $filters['payment_status']);
+        }
+
+        if (!empty($filters['status'])) {
+            $salesQuery->where('status', $filters['status']);
+        }
+
+        $sales = $salesQuery->paginate(10)->withQueryString();
+
+        $filteredSummaryQuery = clone $salesQuery;
 
         $stats = [
             'total_sales' => $customer->sales()->sum('total_amount'),
             'total_orders' => $customer->sales()->count(),
-            'last_purchase' => $customer->sales()->latest()->first()?->created_at,
+            'last_purchase' => $customer->sales()->latest('sale_date')->first()?->sale_date,
             'average_order_value' => $customer->sales()->avg('total_amount') ?? 0,
         ];
 
-        return view('customers.show', compact('customer', 'stats'));
+        $filteredStats = [
+            'filtered_sales' => $filteredSummaryQuery->sum('total_amount'),
+            'filtered_orders' => $filteredSummaryQuery->count(),
+        ];
+
+        return view('customers.show', compact('customer', 'stats', 'sales', 'filters', 'filteredStats'));
     }
 
     public function edit(Customer $customer)
@@ -77,23 +97,9 @@ class CustomerController extends Controller
         return view('customers.edit', compact('customer'));
     }
 
-    public function update(Request $request, Customer $customer)
+    public function update(UpdateCustomerRequest $request, Customer $customer)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'nullable|email|unique:customers,email,' . $customer->id,
-            'phone' => 'required|string|max:20',
-            'company_name' => 'nullable|string|max:255',
-            'tax_number' => 'nullable|string|max:50',
-            'address' => 'nullable|string',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'postal_code' => 'nullable|string|max:20',
-            'country' => 'nullable|string|max:100',
-            'credit_limit' => 'nullable|numeric|min:0',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        $validated = $request->validated();
 
         $customer->update($validated);
 
