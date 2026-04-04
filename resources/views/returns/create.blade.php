@@ -13,7 +13,8 @@
                 <div class="flex gap-4">
                     <input type="text" id="invoice-search" placeholder="Enter Invoice Number..."
                         class="flex-1 border-gray-300 rounded-lg">
-                    <button onclick="searchSale()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                    <button onclick="searchSale()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
                         Search
                     </button>
                 </div>
@@ -72,7 +73,8 @@
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Reason for Return *</label>
-                            <textarea name="reason" rows="3" required class="w-full border-gray-300 rounded-lg"></textarea>
+                            <textarea name="reason" rows="3" required
+                                class="w-full border-gray-300 rounded-lg"></textarea>
                         </div>
                     </div>
 
@@ -80,15 +82,17 @@
                     <div class="bg-gray-50 p-4 rounded-lg mb-6">
                         <div class="flex justify-between items-center text-lg font-bold">
                             <span>Total Refund Amount:</span>
-                            <span id="refund-total">₹0.00</span>
+                            <span id="refund-total">LKR 0.00</span>
                         </div>
                     </div>
 
                     <div class="flex gap-4">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
                             Process Return
                         </button>
-                        <a href="{{ route('returns.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
+                        <a href="{{ route('returns.index') }}"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
                             Cancel
                         </a>
                     </div>
@@ -98,90 +102,90 @@
     </div>
 
     @push('scripts')
-    <script>
-        let saleData = null;
+        <script>
+            let saleData = null;
 
-        async function searchSale() {
-            const invoice = document.getElementById('invoice-search').value.trim();
-            const messageDiv = document.getElementById('search-message');
+            async function searchSale() {
+                const invoice = document.getElementById('invoice-search').value.trim();
+                const messageDiv = document.getElementById('search-message');
 
-            if (!invoice) {
-                messageDiv.className = 'mt-2 text-sm text-red-600';
-                messageDiv.textContent = 'Please enter an invoice number';
-                return;
-            }
-
-            try {
-                const response = await fetch(`{{ route('returns.search-sale') }}?invoice=${invoice}`);
-                const data = await response.json();
-
-                if (data.success) {
-                    saleData = data.sale;
-                    displaySaleDetails();
-                    messageDiv.className = 'mt-2 text-sm text-green-600';
-                    messageDiv.textContent = 'Sale found! Select items to return.';
-                } else {
+                if (!invoice) {
                     messageDiv.className = 'mt-2 text-sm text-red-600';
-                    messageDiv.textContent = data.message || 'Sale not found';
-                    document.getElementById('return-form-container').style.display = 'none';
+                    messageDiv.textContent = 'Please enter an invoice number';
+                    return;
                 }
-            } catch (error) {
-                messageDiv.className = 'mt-2 text-sm text-red-600';
-                messageDiv.textContent = 'Error searching for sale';
+
+                try {
+                    const response = await fetch(`{{ route('returns.search-sale') }}?invoice=${invoice}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        saleData = data.sale;
+                        displaySaleDetails();
+                        messageDiv.className = 'mt-2 text-sm text-green-600';
+                        messageDiv.textContent = 'Sale found! Select items to return.';
+                    } else {
+                        messageDiv.className = 'mt-2 text-sm text-red-600';
+                        messageDiv.textContent = data.message || 'Sale not found';
+                        document.getElementById('return-form-container').style.display = 'none';
+                    }
+                } catch (error) {
+                    messageDiv.className = 'mt-2 text-sm text-red-600';
+                    messageDiv.textContent = 'Error searching for sale';
+                }
             }
-        }
 
-        function displaySaleDetails() {
-            document.getElementById('sale-id').value = saleData.id;
-            document.getElementById('sale-invoice').textContent = saleData.invoice_number;
-            document.getElementById('sale-date').textContent = new Date(saleData.sale_date).toLocaleDateString();
-            document.getElementById('sale-customer').textContent = saleData.customer?.name || 'Walk-in';
-            document.getElementById('sale-total').textContent = `₹${parseFloat(saleData.total_amount).toFixed(2)}`;
+            function displaySaleDetails() {
+                document.getElementById('sale-id').value = saleData.id;
+                document.getElementById('sale-invoice').textContent = saleData.invoice_number;
+                document.getElementById('sale-date').textContent = new Date(saleData.sale_date).toLocaleDateString();
+                document.getElementById('sale-customer').textContent = saleData.customer?.name || 'Walk-in';
+                document.getElementById('sale-total').textContent = `LKR ${parseFloat(saleData.total_amount).toFixed(2)}`;
 
-            const itemsContainer = document.getElementById('items-container');
-            itemsContainer.innerHTML = saleData.items.map(item => `
-                <div class="flex items-center gap-4 p-4 border rounded-lg mb-2">
-                    <input type="checkbox" name="items[${item.id}][selected]" value="1"
-                        onchange="updateRefund()" class="return-item-checkbox rounded border-gray-300">
-                    <div class="flex-1">
-                        <div class="font-medium">${item.product.name}</div>
-                        <div class="text-sm text-gray-500">Price: ₹${parseFloat(item.unit_price).toFixed(2)} × Qty: ${item.quantity}</div>
+                const itemsContainer = document.getElementById('items-container');
+                itemsContainer.innerHTML = saleData.items.map(item => `
+                    <div class="flex items-center gap-4 p-4 border rounded-lg mb-2">
+                        <input type="checkbox" name="items[${item.id}][selected]" value="1"
+                            onchange="updateRefund()" class="return-item-checkbox rounded border-gray-300">
+                        <div class="flex-1">
+                            <div class="font-medium">${item.product.name}</div>
+                            <div class="text-sm text-gray-500">Price: LKR ${parseFloat(item.unit_price).toFixed(2)} × Qty: ${item.quantity}</div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <label class="text-sm">Return Qty:</label>
+                            <input type="number" name="items[${item.id}][quantity]"
+                                min="0" max="${item.quantity}" value="0"
+                                onchange="updateRefund()"
+                                class="return-quantity w-20 border-gray-300 rounded">
+                        </div>
+                        <div class="font-semibold w-24 text-right">
+                            <span class="item-subtotal" data-price="${item.unit_price}">LKR 0.00</span>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm">Return Qty:</label>
-                        <input type="number" name="items[${item.id}][quantity]"
-                            min="0" max="${item.quantity}" value="0"
-                            onchange="updateRefund()"
-                            class="return-quantity w-20 border-gray-300 rounded">
-                    </div>
-                    <div class="font-semibold w-24 text-right">
-                        <span class="item-subtotal" data-price="${item.unit_price}">₹0.00</span>
-                    </div>
-                </div>
-            `).join('');
+                `).join('');
 
-            document.getElementById('return-form-container').style.display = 'block';
-        }
+                document.getElementById('return-form-container').style.display = 'block';
+            }
 
-        function updateRefund() {
-            let total = 0;
-            document.querySelectorAll('.return-item-checkbox').forEach((checkbox, index) => {
-                if (checkbox.checked) {
-                    const quantityInput = document.querySelectorAll('.return-quantity')[index];
-                    const subtotalSpan = document.querySelectorAll('.item-subtotal')[index];
-                    const price = parseFloat(subtotalSpan.dataset.price);
-                    const quantity = parseInt(quantityInput.value) || 0;
-                    const subtotal = price * quantity;
+            function updateRefund() {
+                let total = 0;
+                document.querySelectorAll('.return-item-checkbox').forEach((checkbox, index) => {
+                    if (checkbox.checked) {
+                        const quantityInput = document.querySelectorAll('.return-quantity')[index];
+                        const subtotalSpan = document.querySelectorAll('.item-subtotal')[index];
+                        const price = parseFloat(subtotalSpan.dataset.price);
+                        const quantity = parseInt(quantityInput.value) || 0;
+                        const subtotal = price * quantity;
 
-                    subtotalSpan.textContent = `₹${subtotal.toFixed(2)}`;
-                    total += subtotal;
-                } else {
-                    document.querySelectorAll('.item-subtotal')[index].textContent = '₹0.00';
-                }
-            });
+                        subtotalSpan.textContent = `LKR ${subtotal.toFixed(2)}`;
+                        total += subtotal;
+                    } else {
+                        document.querySelectorAll('.item-subtotal')[index].textContent = 'LKR 0.00';
+                    }
+                });
 
-            document.getElementById('refund-total').textContent = `₹${total.toFixed(2)}`;
-        }
-    </script>
+                document.getElementById('refund-total').textContent = `LKR ${total.toFixed(2)}`;
+            }
+        </script>
     @endpush
 </x-app-layout>
