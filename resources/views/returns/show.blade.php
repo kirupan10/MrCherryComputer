@@ -16,7 +16,8 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Original Invoice</label>
-                        <a href="{{ route('sales.show', $return->sale) }}" class="text-base text-blue-600 hover:text-blue-800">
+                        <a href="{{ route('sales.show', $return->sale) }}"
+                            class="text-base text-blue-600 hover:text-blue-800">
                             {{ $return->sale->invoice_number }}
                         </a>
                     </div>
@@ -26,11 +27,12 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Customer</label>
-                        <p class="text-base text-gray-900">{{ optional($return->sale->customer)->name ?? 'Walk-in Customer' }}</p>
+                        <p class="text-base text-gray-900">
+                            {{ optional($return->sale->customer)->name ?? 'Walk-in Customer' }}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Processed By</label>
-                        <p class="text-base text-gray-900">{{ $return->user->name }}</p>
+                        <p class="text-base text-gray-900">{{ optional($return->creator)->name ?? 'N/A' }}</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Refund Method</label>
@@ -38,7 +40,8 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-500 mb-1">Refund Amount</label>
-                        <p class="text-base font-bold text-gray-900">₹{{ number_format($return->refund_amount, 2) }}</p>
+                        <p class="text-base font-bold text-gray-900">LKR {{ number_format($return->refund_amount, 2) }}
+                        </p>
                     </div>
                     <div></div>
                     <div class="md:col-span-2 lg:col-span-4">
@@ -56,34 +59,38 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Original Price</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Returned Qty</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Refund Amount</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Original
+                                    Price</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Returned
+                                    Qty</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Refund
+                                    Amount</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($return->items as $item)
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                    {{ $item->product->name }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    ₹{{ number_format($item->unit_price, 2) }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                    {{ $item->quantity }}
-                                </td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                                    ₹{{ number_format($item->refund_amount, 2) }}
-                                </td>
-                            </tr>
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ optional($item->product)->name ?? $item->product_name }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                        LKR {{ number_format($item->unit_price, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                        {{ $item->quantity }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                        LKR {{ number_format($item->total, 2) }}
+                                    </td>
+                                </tr>
                             @endforeach
                         </tbody>
                         <tfoot class="bg-gray-50">
                             <tr>
-                                <td colspan="3" class="px-6 py-4 text-sm font-bold text-gray-900 text-right">Total Refund:</td>
+                                <td colspan="3" class="px-6 py-4 text-sm font-bold text-gray-900 text-right">Total
+                                    Refund:</td>
                                 <td class="px-6 py-4 text-sm font-bold text-gray-900 text-right">
-                                    ₹{{ number_format($return->refund_amount, 2) }}
+                                    LKR {{ number_format($return->refund_amount, 2) }}
                                 </td>
                             </tr>
                         </tfoot>
