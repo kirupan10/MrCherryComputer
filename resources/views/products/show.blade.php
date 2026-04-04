@@ -17,7 +17,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div class="md:col-span-1">
                         @if($product->image)
-                            <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}"
+                            <img src="{{ route('products.image', $product) }}" alt="{{ $product->name }}"
                                 class="h-48 w-full rounded-lg object-cover border border-gray-200">
                         @else
                             <div
@@ -33,7 +33,8 @@
                                 <h3 class="text-2xl font-semibold text-gray-900">{{ $product->name }}</h3>
                                 <p class="text-sm text-gray-500 mt-1">
                                     {{ optional($product->category)->name ?? 'Uncategorized' }} |
-                                    {{ optional($product->unit)->name ?? 'N/A' }}</p>
+                                    {{ optional($product->unit)->name ?? 'N/A' }}
+                                </p>
                             </div>
                             @php
                                 $currentStock = optional($product->stock)->quantity ?? 0;
@@ -53,17 +54,20 @@
                             <div class="p-4 rounded-lg bg-gray-50 border border-gray-200">
                                 <p class="text-gray-500">Low Stock Alert</p>
                                 <p class="text-lg font-semibold text-gray-900">
-                                    {{ number_format($product->low_stock_alert, 2) }}</p>
+                                    {{ number_format($product->low_stock_alert, 2) }}
+                                </p>
                             </div>
                             <div class="p-4 rounded-lg bg-gray-50 border border-gray-200">
                                 <p class="text-gray-500">Selling Price</p>
                                 <p class="text-lg font-semibold text-gray-900">
-                                    {{ number_format($product->selling_price, 2) }}</p>
+                                    {{ number_format($product->selling_price, 2) }}
+                                </p>
                             </div>
                             <div class="p-4 rounded-lg bg-gray-50 border border-gray-200">
                                 <p class="text-gray-500">Purchase Price</p>
                                 <p class="text-lg font-semibold text-gray-900">
-                                    {{ number_format($product->purchase_price, 2) }}</p>
+                                    {{ number_format($product->purchase_price, 2) }}
+                                </p>
                             </div>
                             <div class="p-4 rounded-lg bg-gray-50 border border-gray-200">
                                 <p class="text-gray-500">SKU</p>
@@ -86,6 +90,42 @@
             </div>
 
             <div class="bg-white shadow-sm rounded-lg overflow-hidden">
+                @hasanyrole('admin|manager')
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h4 class="text-lg font-semibold text-gray-800">Update Stock / Restock</h4>
+                        <form action="{{ route('products.update-stock', $product) }}" method="POST" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-3">
+                            @csrf
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                                <select name="type" class="w-full border-gray-300 rounded-lg">
+                                    <option value="in">Stock In (Restock)</option>
+                                    <option value="out">Stock Out</option>
+                                    <option value="adjustment">Adjustment (Set/Correct)</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                                <input type="number" name="quantity" min="0.01" step="0.01" required
+                                    class="w-full border-gray-300 rounded-lg" placeholder="0.00">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <input type="text" name="notes" class="w-full border-gray-300 rounded-lg"
+                                    placeholder="Supplier / reference">
+                            </div>
+
+                            <div class="flex items-end">
+                                <button type="submit"
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg">
+                                    Update Stock
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                @endhasanyrole
+
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h4 class="text-lg font-semibold text-gray-800">Stock Movement History</h4>
                 </div>
@@ -106,7 +146,8 @@
                         @forelse($product->stockLogs as $log)
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ $log->created_at->format('d M Y, h:i A') }}</td>
+                                    {{ $log->created_at->format('d M Y, h:i A') }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     @if($log->type === 'in')
                                         <span
@@ -120,13 +161,17 @@
                                     @endif
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                    {{ number_format($log->quantity, 2) }}</td>
+                                    {{ number_format($log->quantity, 2) }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
-                                    {{ number_format($log->previous_quantity, 2) }}</td>
+                                    {{ number_format($log->previous_quantity, 2) }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900">
-                                    {{ number_format($log->current_quantity, 2) }}</td>
+                                    {{ number_format($log->current_quantity, 2) }}
+                                </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                    {{ optional($log->creator)->name ?? 'System' }}</td>
+                                    {{ optional($log->creator)->name ?? 'System' }}
+                                </td>
                                 <td class="px-6 py-4 text-sm text-gray-500">{{ $log->notes ?? 'N/A' }}</td>
                             </tr>
                         @empty
