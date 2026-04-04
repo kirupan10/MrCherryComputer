@@ -38,7 +38,7 @@
                 </div>
                 <div class="bg-white shadow-sm rounded-lg p-6">
                     <div class="text-sm font-medium text-gray-500">Total Stock Value</div>
-                    <div class="mt-2 text-3xl font-bold text-gray-900">₹{{ number_format($summary['total_stock_value'] ?? 0, 2) }}</div>
+                    <div class="mt-2 text-3xl font-bold text-gray-900">LKR {{ number_format($summary['total_stock_value'] ?? 0, 2) }}</div>
                 </div>
                 <div class="bg-white shadow-sm rounded-lg p-6">
                     <div class="text-sm font-medium text-gray-500">Low Stock Items</div>
@@ -83,13 +83,13 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                ₹{{ number_format($item['purchase_price'], 2) }}
+                                LKR {{ number_format($item['purchase_price'], 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
-                                ₹{{ number_format($item['selling_price'], 2) }}
+                                LKR {{ number_format($item['selling_price'], 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
-                                ₹{{ number_format($item['stock_value'], 2) }}
+                                LKR {{ number_format($item['stock_value'], 2) }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 @if($item['current_stock'] == 0)
