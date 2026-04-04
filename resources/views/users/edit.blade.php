@@ -63,6 +63,7 @@
                         </div>
 
                         <div class="md:col-span-2">
+                            <input type="hidden" name="is_active" value="0">
                             <label class="flex items-center">
                                 <input type="checkbox" name="is_active" value="1" {{ old('is_active', $user->is_active) ? 'checked' : '' }}
                                     class="rounded border-gray-300 text-blue-600 mr-2">
