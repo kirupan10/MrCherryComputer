@@ -15,7 +15,8 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Expense Date *</label>
-                            <input type="date" name="expense_date" value="{{ old('expense_date', $expense->expense_date->format('Y-m-d')) }}" required
+                            <input type="date" name="expense_date"
+                                value="{{ old('expense_date', $expense->expense_date->format('Y-m-d')) }}" required
                                 class="w-full border-gray-300 rounded-lg">
                         </div>
 
@@ -24,22 +25,23 @@
                             <select name="expense_category_id" required class="w-full border-gray-300 rounded-lg">
                                 <option value="">Select Category</option>
                                 @foreach($categories as $category)
-                                <option value="{{ $category->id }}" {{ old('expense_category_id', $expense->expense_category_id) == $category->id ? 'selected' : '' }}>
-                                    {{ $category->name }}
-                                </option>
+                                    <option value="{{ $category->id }}" {{ old('expense_category_id', $expense->expense_category_id) == $category->id ? 'selected' : '' }}>
+                                        {{ $category->name }}
+                                    </option>
                                 @endforeach
                             </select>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Amount *</label>
-                            <input type="number" name="amount" value="{{ old('amount', $expense->amount) }}"
-                                step="0.01" min="0" required class="w-full border-gray-300 rounded-lg">
+                            <input type="number" name="amount" value="{{ old('amount', $expense->amount) }}" step="0.01"
+                                min="0" required class="w-full border-gray-300 rounded-lg">
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Reference Number</label>
-                            <input type="text" name="reference_number" value="{{ old('reference_number', $expense->reference_number) }}"
+                            <input type="text" name="reference_number"
+                                value="{{ old('reference_number', $expense->reference_number) }}"
                                 class="w-full border-gray-300 rounded-lg">
                         </div>
 
@@ -49,16 +51,17 @@
                                 class="w-full border-gray-300 rounded-lg">{{ old('description', $expense->description) }}</textarea>
                         </div>
 
-                        @if($expense->receipt_path)
-                        <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Current Receipt</label>
-                            @if(Str::endsWith($expense->receipt_path, '.pdf'))
-                            <a href="{{ asset('storage/' . $expense->receipt_path) }}" target="_blank"
-                                class="text-blue-600 hover:text-blue-800">View PDF</a>
-                            @else
-                            <img src="{{ asset('storage/' . $expense->receipt_path) }}" alt="Receipt" class="h-32 rounded">
-                            @endif
-                        </div>
+                        @if($expense->receipt_image)
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Current Receipt</label>
+                                @if(Str::endsWith($expense->receipt_image, '.pdf'))
+                                    <a href="{{ asset('storage/' . $expense->receipt_image) }}" target="_blank"
+                                        class="text-blue-600 hover:text-blue-800">View PDF</a>
+                                @else
+                                    <img src="{{ asset('storage/' . $expense->receipt_image) }}" alt="Receipt"
+                                        class="h-32 rounded">
+                                @endif
+                            </div>
                         @endif
 
                         <div class="md:col-span-2">
@@ -72,18 +75,23 @@
                             <label class="block text-sm font-medium text-gray-700 mb-2">Status</label>
                             <select name="status" class="w-full border-gray-300 rounded-lg">
                                 <option value="pending" {{ old('status', $expense->status) == 'pending' ? 'selected' : '' }}>Pending</option>
+                                <option value="paid" {{ old('status', $expense->status) == 'paid' ? 'selected' : '' }}>
+                                    Paid</option>
+                                @role('admin')
                                 <option value="approved" {{ old('status', $expense->status) == 'approved' ? 'selected' : '' }}>Approved</option>
-                                <option value="rejected" {{ old('status', $expense->status) == 'rejected' ? 'selected' : '' }}>Rejected</option>
+                                @endrole
                             </select>
                         </div>
                         @endrole
                     </div>
 
                     <div class="mt-6 flex gap-4">
-                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
+                        <button type="submit"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg">
                             Update Expense
                         </button>
-                        <a href="{{ route('expenses.index') }}" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
+                        <a href="{{ route('expenses.index') }}"
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg">
                             Cancel
                         </a>
                     </div>
