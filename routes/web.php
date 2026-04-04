@@ -46,6 +46,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/sales/{sale}/invoice', [SaleController::class, 'invoice'])->name('sales.invoice');
     Route::get('/sales/{sale}/download', [SaleController::class, 'downloadInvoice'])->name('sales.download');
 
+    // Product image endpoint (works even when public/storage symlink is unavailable)
+    Route::get('/products/{product}/image', [ProductController::class, 'image'])->name('products.image');
+
     // Admin and Manager routes
     Route::middleware(['role:admin,manager'])->group(function () {
 
