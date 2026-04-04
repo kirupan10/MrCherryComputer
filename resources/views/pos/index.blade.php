@@ -36,7 +36,7 @@
                                     data-tax="{{ $product->tax_percentage ?? 0 }}"
                                     data-stock="{{ optional($product->stock)->quantity ?? 0 }}" onclick="addToCart(this)">
                                     @if($product->image)
-                                        <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}"
+                                        <img src="{{ route('products.image', $product) }}" alt="{{ $product->name }}"
                                             class="w-full h-24 object-cover rounded mb-2">
                                     @else
                                         <div class="w-full h-24 bg-gray-200 rounded mb-2 flex items-center justify-center">
@@ -50,7 +50,8 @@
                                     <h4 class="font-medium text-sm text-gray-900 truncate">{{ $product->name }}</h4>
                                     <p class="text-xs text-gray-500">{{ $product->category->name }}</p>
                                     <p class="text-sm font-bold text-blue-600 mt-1">LKR
-                                        {{ number_format($product->selling_price, 2) }}</p>
+                                        {{ number_format($product->selling_price, 2) }}
+                                    </p>
                                     <p class="text-xs text-gray-500">Stock: {{ optional($product->stock)->quantity ?? 0 }}
                                     </p>
                                 </div>
@@ -62,7 +63,13 @@
                 <!-- Cart Section (Right - 1 column) -->
                 <div class="lg:col-span-1">
                     <div class="bg-white shadow-sm rounded-lg p-4 sticky top-4">
-                        <h3 class="text-lg font-medium text-gray-900 mb-4">Shopping Cart</h3>
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Shopping Cart</h3>
+                            <span id="cart-count"
+                                class="inline-flex items-center rounded-full bg-blue-100 text-blue-700 px-2.5 py-1 text-xs font-semibold">
+                                0 items
+                            </span>
+                        </div>
 
                         <!-- Customer Selection -->
                         <div class="mb-4">
@@ -93,11 +100,17 @@
                                 <span class="text-gray-600">Tax:</span>
                                 <span class="font-medium">LKR <span id="tax-amount">0.00</span></span>
                             </div>
-                            <div class="flex justify-between text-sm">
-                                <span class="text-gray-600">Discount:</span>
-                                <input type="number" id="discount-input" value="0" min="0" step="0.01"
-                                    class="w-20 text-right border-gray-300 rounded px-2 py-1 text-sm"
-                                    onchange="updateTotals()">
+                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                <label for="discount-input" class="block text-xs font-medium text-gray-600 mb-1">Discount (LKR)</label>
+                                <div class="flex items-center">
+                                    <span class="text-sm text-gray-500 mr-2">LKR</span>
+                                    <input type="number" id="discount-input" value="0" min="0" step="0.01"
+                                        inputmode="decimal" placeholder="0.00"
+                                        class="w-full text-right border-gray-300 rounded px-2 py-1.5 text-sm no-number-spinner"
+                                        onchange="normalizeDiscountInput(); updateTotals()"
+                                        onblur="normalizeDiscountInput(); updateTotals()"
+                                        oninput="updateTotals(true)">
+                                </div>
                             </div>
                             <div class="flex justify-between text-lg font-bold pt-2 border-t">
                                 <span>Total:</span>
@@ -182,6 +195,21 @@
         </div>
     </div>
 
+    @push('styles')
+        <style>
+            .no-number-spinner::-webkit-outer-spin-button,
+            .no-number-spinner::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+
+            .no-number-spinner[type="number"] {
+                appearance: textfield;
+                -moz-appearance: textfield;
+            }
+        </style>
+    @endpush
+
     @push('scripts')
         <script>
             let cart = [];
@@ -215,17 +243,17 @@
                 }
 
                 resultsDiv.innerHTML = products.map(product => `
-                    <div class="p-2 hover:bg-gray-100 cursor-pointer border-b"
-                         onclick='addToCartFromSearch(${JSON.stringify(product)})'>
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="font-medium text-sm">${product.name}</p>
-                                <p class="text-xs text-gray-500">${product.sku} | Stock: ${product.stock}</p>
+                        <div class="p-2 hover:bg-gray-100 cursor-pointer border-b"
+                             onclick='addToCartFromSearch(${JSON.stringify(product)})'>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <p class="font-medium text-sm">${product.name}</p>
+                                    <p class="text-xs text-gray-500">${product.sku} | Stock: ${product.stock}</p>
+                                </div>
+                                <p class="font-bold text-blue-600">LKR ${product.price}</p>
                             </div>
-                            <p class="font-bold text-blue-600">LKR ${product.price}</p>
                         </div>
-                    </div>
-                `).join('');
+                    `).join('');
                 resultsDiv.classList.remove('hidden');
             }
 
@@ -286,6 +314,9 @@
 
             function updateCart() {
                 const cartDiv = document.getElementById('cart-items');
+                const cartCount = document.getElementById('cart-count');
+                const totalItems = cart.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+                cartCount.textContent = `${totalItems} ${totalItems === 1 ? 'item' : 'items'}`;
 
                 if (cart.length === 0) {
                     cartDiv.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">No items in cart</p>';
@@ -299,26 +330,26 @@
                     const itemTax = (itemTotal * item.tax_percentage) / 100;
 
                     return `
-                        <div class="flex items-center justify-between py-2" data-index="${index}">
-                            <div class="flex-1">
-                                <p class="text-sm font-medium text-gray-900">${item.name}</p>
-                                    <p class="text-xs text-gray-500">LKR ${item.price.toFixed(2)} × ${item.quantity}${item.is_manual ? ' (Manual)' : ''}</p>
+                            <div class="flex items-center justify-between py-2" data-index="${index}">
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-gray-900">${item.name}</p>
+                                        <p class="text-xs text-gray-500">LKR ${item.price.toFixed(2)} × ${item.quantity}${item.is_manual ? ' (Manual)' : ''}</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button onclick="updateQuantity(${index}, -1)"
+                                        class="bg-gray-200 hover:bg-gray-300 rounded px-2 py-1 text-sm">-</button>
+                                    <span class="text-sm font-medium w-8 text-center">${item.quantity}</span>
+                                    <button onclick="updateQuantity(${index}, 1)"
+                                        class="bg-gray-200 hover:bg-gray-300 rounded px-2 py-1 text-sm">+</button>
+                                    <button onclick="removeFromCart(${index})"
+                                        class="text-red-600 hover:text-red-800 ml-2">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex items-center gap-2">
-                                <button onclick="updateQuantity(${index}, -1)"
-                                    class="bg-gray-200 hover:bg-gray-300 rounded px-2 py-1 text-sm">-</button>
-                                <span class="text-sm font-medium w-8 text-center">${item.quantity}</span>
-                                <button onclick="updateQuantity(${index}, 1)"
-                                    class="bg-gray-200 hover:bg-gray-300 rounded px-2 py-1 text-sm">+</button>
-                                <button onclick="removeFromCart(${index})"
-                                    class="text-red-600 hover:text-red-800 ml-2">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    `;
+                        `;
                 }).join('');
 
                 document.getElementById('checkout-btn').disabled = false;
@@ -387,7 +418,23 @@
                 }
             }
 
-            function updateTotals() {
+            function normalizeDiscountInput() {
+                const discountInput = document.getElementById('discount-input');
+                const subtotal = parseFloat(document.getElementById('subtotal').textContent) || 0;
+                const taxAmount = parseFloat(document.getElementById('tax-amount').textContent) || 0;
+                const maxDiscount = subtotal + taxAmount;
+                const enteredDiscount = parseFloat(discountInput.value);
+
+                if (Number.isNaN(enteredDiscount)) {
+                    discountInput.value = '0.00';
+                    return;
+                }
+
+                const normalized = Math.min(Math.max(enteredDiscount, 0), maxDiscount);
+                discountInput.value = normalized.toFixed(2);
+            }
+
+            function updateTotals(liveTyping = false) {
                 let subtotal = 0;
                 let taxAmount = 0;
 
@@ -398,7 +445,15 @@
                     taxAmount += itemTax;
                 });
 
-                const discount = parseFloat(document.getElementById('discount-input').value) || 0;
+                const discountInput = document.getElementById('discount-input');
+                const maxDiscount = subtotal + taxAmount;
+                const enteredDiscount = parseFloat(discountInput.value) || 0;
+                const discount = Math.min(Math.max(enteredDiscount, 0), maxDiscount);
+
+                if (!liveTyping && enteredDiscount !== discount) {
+                    discountInput.value = discount.toFixed(2);
+                }
+
                 const total = Math.max(0, subtotal + taxAmount - discount);
 
                 document.getElementById('subtotal').textContent = subtotal.toFixed(2);
@@ -428,6 +483,8 @@
             }
 
             function completeSale() {
+                normalizeDiscountInput();
+
                 const customerId = document.getElementById('customer-select').value || null;
                 const paymentMethod = document.getElementById('payment-method').value;
                 const paidAmount = parseFloat(document.getElementById('paid-amount').value);
@@ -469,18 +526,35 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
                     body: JSON.stringify(saleData)
                 })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert(`Sale completed successfully! Invoice: ${data.invoice_number}`);
-                            window.location.href = `/pos/invoice/${data.sale_id}`;
-                        } else {
-                            alert('Error: ' + data.message);
+                    .then(async (response) => {
+                        const contentType = response.headers.get('content-type') || '';
+
+                        if (contentType.includes('application/json')) {
+                            const data = await response.json();
+
+                            if (!response.ok || !data.success) {
+                                throw new Error(data.message || 'Failed to process sale.');
+                            }
+
+                            return data;
                         }
+
+                        const text = await response.text();
+                        throw new Error(
+                            text && text.trim().startsWith('<')
+                                ? 'Server returned HTML instead of JSON. Please refresh and try again.'
+                                : (text || 'Unexpected server response.')
+                        );
+                    })
+                    .then(data => {
+                        alert(`Sale completed successfully! Invoice: ${data.invoice_number}`);
+                        window.location.href = `/pos/invoice/${data.sale_id}`;
                     })
                     .catch(error => {
                         alert('Error processing sale: ' + error);
