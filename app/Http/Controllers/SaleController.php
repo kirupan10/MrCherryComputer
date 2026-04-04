@@ -53,12 +53,14 @@ class SaleController extends Controller
             $query->whereDate('sale_date', '<=', $request->to_date);
         }
 
+        $statsQuery = clone $query;
+
         $sales = $query->latest()->paginate(20);
 
         $stats = [
-            'total_sales' => Sale::sum('total_amount'),
-            'today_sales' => Sale::whereDate('sale_date', today())->sum('total_amount'),
-            'completed_count' => Sale::where('status', 'completed')->count(),
+            'total_sales' => (clone $statsQuery)->sum('total_amount'),
+            'today_sales' => (clone $statsQuery)->whereDate('sale_date', today())->sum('total_amount'),
+            'completed_count' => (clone $statsQuery)->where('status', 'completed')->count(),
         ];
 
         return view('sales.index', compact('sales', 'stats'));
