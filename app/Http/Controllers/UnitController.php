@@ -3,28 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\Unit;
-use Illuminate\Http\Request;
+use App\Http\Requests\Unit\StoreUnitRequest;
+use App\Http\Requests\Unit\UpdateUnitRequest;
 
 class UnitController extends Controller
 {
-    public function index(Request $request)
+    public function __construct()
     {
-        $query = Unit::withCount('products');
+        // Only super admins can manage units
+        $this->middleware('role:admin');
+    }
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('short_name', 'like', "%{$search}%");
-            });
-        }
+    public function index()
+    {
+        // Units management - admin only
+        $units = Unit::query()
+            ->select(['id', 'name', 'slug', 'short_code', 'created_by'])
+            ->with('creator:id,name')
+            ->latest()
+            ->get();
 
-        if ($request->filled('status')) {
-            $query->where('is_active', $request->status === 'active');
-        }
-
-        $units = $query->latest()->paginate(15)->withQueryString();
-        return view('units.index', compact('units'));
+        return view('units.index', [
+            'units' => $units,
+        ]);
     }
 
     public function create()
@@ -34,54 +35,45 @@ class UnitController extends Controller
 
     public function show(Unit $unit)
     {
-        $unit->loadCount('products');
+        // Ensure related products are loaded on the unit instance
+        $unit->loadMissing('products');
 
-        $recentProducts = $unit->products()
-            ->latest()
-            ->limit(10)
-            ->get(['id', 'name', 'sku', 'is_active']);
-
-        return view('units.show', compact('unit', 'recentProducts'));
+        return view('units.show', [
+            'unit' => $unit
+        ]);
     }
 
-    public function store(Request $request)
+    public function store(StoreUnitRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:50',
-            'short_name' => 'required|string|max:10',
-            'is_active' => 'boolean',
-        ]);
+        Unit::create($request->validated());
 
-        Unit::create($validated);
-
-        return redirect()->route('units.index')
-            ->with('success', 'Unit created successfully.');
+        return redirect()
+            ->route('units.index')
+            ->with('success', 'Unit has been created!');
     }
 
     public function edit(Unit $unit)
     {
-        return view('units.edit', compact('unit'));
+        return view('units.edit', [
+            'unit' => $unit
+        ]);
     }
 
-    public function update(Request $request, Unit $unit)
+    public function update(UpdateUnitRequest $request, Unit $unit)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:50',
-            'short_name' => 'required|string|max:10',
-            'is_active' => 'boolean',
-        ]);
+        $unit->update($request->all());
 
-        $unit->update($validated);
-
-        return redirect()->route('units.index')
-            ->with('success', 'Unit updated successfully.');
+        return redirect()
+            ->route('units.index')
+            ->with('success', 'Unit has been updated!');
     }
 
     public function destroy(Unit $unit)
     {
         $unit->delete();
 
-        return redirect()->route('units.index')
-            ->with('success', 'Unit deleted successfully.');
+        return redirect()
+            ->route('units.index')
+            ->with('success', 'Unit has been deleted!');
     }
 }

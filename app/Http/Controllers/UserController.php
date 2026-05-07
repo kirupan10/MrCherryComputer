@@ -4,185 +4,226 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Spatie\Permission\Models\Role;
+use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
 
 class UserController extends Controller
 {
-    private function currentUserId(): ?int
+    public function index()
     {
-        $id = Auth::id();
+        $user = auth()->user();
 
-        return is_numeric($id) ? (int) $id : null;
-    }
-
-    private function activeAdminCount(): int
-    {
-        return User::role('admin')
-            ->where('is_active', true)
-            ->count();
-    }
-
-    public function index(Request $request)
-    {
-        $query = User::with('roles');
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
-            });
+        if ($user->isAdmin()) {
+            // Super admin can see all users - eager-load shop relation with all columns needed for view
+            $users = User::with(['shop:id,name,email,subscription_status,status'])->latest()->get();
+        } elseif ($user->isShopOwner()) {
+            // Shop owner can see users in their shop - eager-load shop relation
+            $users = User::with('shop:id,name')
+                        ->where('shop_id', $user->ownedShop->id)
+                        ->orWhere('id', $user->id) // Include themselves
+                        ->latest()->get();
+        } else {
+            // Other users can only see themselves - eager-load shop relation
+            $users = User::with('shop:id,name')->where('id', $user->id)->get();
         }
 
-        if ($request->filled('role')) {
-            $query->role($request->role);
-        }
-
-        $users = $query->latest()->paginate(20);
-        $roles = Role::all();
-
-        return view('users.index', compact('users', 'roles'));
+        return view('users.index', [
+            'users' => $users
+        ]);
     }
 
     public function create()
     {
-        $roles = Role::all();
-        return view('users.create', compact('roles'));
+        $user = auth()->user();
+
+        // Only super admin and shop owners can create users
+        if (!$user->isAdmin() && !$user->isShopOwner()) {
+            return redirect()->route('users.index')
+                           ->with('error', 'You do not have permission to create users.');
+        }
+
+        $availableRoles = $this->getAvailableRoles($user);
+        $availableShops = $this->getAvailableShops($user);
+
+        return view('users.create', [
+            'availableRoles' => $availableRoles,
+            'availableShops' => $availableShops
+        ]);
     }
 
-    public function store(Request $request)
+    private function getAvailableRoles($user)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'is_active' => 'boolean',
-        ]);
+        if ($user->isAdmin()) {
+            return [
+                'admin' => 'Super Admin',
+                'admin' => 'Admin',
+                'shop_owner' => 'Shop Owner',
+                'manager' => 'Manager',
+                'employee' => 'Employee'
+            ];
+        } elseif ($user->isShopOwner()) {
+            return [
+                'manager' => 'Manager',
+                'employee' => 'Employee'
+            ];
+        }
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'is_active' => $request->boolean('is_active'),
-        ]);
+        return [];
+    }
 
-        $user->assignRole($validated['role']);
+    private function getAvailableShops($user)
+    {
+        if ($user->isAdmin()) {
+            return \App\Models\Shop::all(['id', 'name']);
+        } elseif ($user->isShopOwner()) {
+            return collect([$user->ownedShop]);
+        }
 
-        return redirect()->route('users.index')
-            ->with('success', 'User created successfully.');
+        return collect([]);
+    }
+
+    public function store(StoreUserRequest $request)
+    {
+        $currentUser = auth()->user();
+
+        // Validate permissions
+        if (!$currentUser->isAdmin() && !$currentUser->isShopOwner()) {
+            return redirect()->route('users.index')
+                           ->with('error', 'You do not have permission to create users.');
+        }
+
+        // Validate role assignment permissions
+        $requestedRole = $request->get('role');
+        $availableRoles = array_keys($this->getAvailableRoles($currentUser));
+
+        if (!in_array($requestedRole, $availableRoles)) {
+            return back()->withErrors(['role' => 'You do not have permission to assign this role.']);
+        }
+
+        // Set shop_id based on user permissions and request
+        $userData = $request->all();
+
+        if ($currentUser->isShopOwner()) {
+            // Shop owners can only create users for their own shop
+            $userData['shop_id'] = $currentUser->ownedShop->id;
+        } elseif ($currentUser->isAdmin()) {
+            // Super admin can specify shop or leave null for shop_owner role
+            if ($requestedRole === 'shop_owner') {
+                $userData['shop_id'] = null; // Shop owners don't have shop_id, they own a shop
+            }
+            // For other roles, shop_id should be provided in the request
+        }
+
+        $user = User::create($userData);
+
+        /**
+         * Handle upload an image
+         */
+        if($request->hasFile('photo')){
+            $file = $request->file('photo');
+            $filename = hexdec(uniqid()).'.'.$file->getClientOriginalExtension();
+
+            $file->storeAs('profile/', $filename, 'public');
+            $user->update([
+                'photo' => $filename
+            ]);
+        }
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'New User has been created!');
     }
 
     public function show(User $user)
     {
-        $user->load('roles');
-
-        $stats = [
-            'total_sales' => $user->sales()->count(),
-            'sales_amount' => $user->sales()->sum('total_amount'),
-            'expenses_created' => $user->expenses()->count(),
-            'expenses_approved' => $user->approvedExpenses()->count(),
-            'returns_processed' => $user->returns()->count(),
-        ];
-
-        $recentSales = $user->sales()->with('customer')->latest()->take(5)->get();
-        $recentExpenses = $user->expenses()->with('category')->latest()->take(5)->get();
-
-        return view('users.show', compact('user', 'stats', 'recentSales', 'recentExpenses'));
+        return view('users.show', [
+            'user' => $user
+        ]);
     }
 
     public function edit(User $user)
     {
-        $roles = Role::all();
-        return view('users.edit', compact('user', 'roles'));
+        return view('users.edit', [
+            'user' => $user
+        ]);
     }
 
-    public function update(Request $request, User $user)
+    public function update(UpdateUserRequest $request, User $user)
     {
+
+//        if ($validatedData['email'] != $user->email) {
+//            $validatedData['email_verified_at'] = null;
+//        }
+
+        $user->update($request->except('photo'));
+
+        /**
+         * Handle upload image with Storage.
+         */
+        if($request->hasFile('photo')){
+
+            // Delete Old Photo
+            if($user->photo){
+                unlink(public_path('storage/profile/') . $user->photo);
+            }
+
+            // Prepare New Photo
+            $file = $request->file('photo');
+            $fileName = hexdec(uniqid()).'.'.$file->getClientOriginalExtension();
+
+            // Store an image to Storage
+            $file->storeAs('profile/', $fileName, 'public');
+
+            // Save DB
+            $user->update([
+                'photo' => $fileName
+            ]);
+        }
+
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'User has been updated!');
+    }
+
+    public function updatePassword(Request $request, String $username)
+    {
+        # Validation
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
-            'role' => 'required|exists:roles,name',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string',
-            'is_active' => 'boolean',
+            'password' => 'required_with:password_confirmation|min:6',
+            'password_confirmation' => 'same:password|min:6',
         ]);
 
-        $requestedRole = $validated['role'];
-        $requestedActive = $request->boolean('is_active');
+        # Update the new Password
+        User::where('username', $username)->update([
+            'password' => Hash::make($validated['password'])
+        ]);
 
-        if ($user->hasRole('admin') && $user->is_active && $this->activeAdminCount() <= 1) {
-            if (!$requestedActive || $requestedRole !== 'admin') {
-                return back()->withErrors(['error' => 'You cannot deactivate or demote the last active admin account.']);
-            }
-        }
-
-        $userData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'] ?? null,
-            'address' => $validated['address'] ?? null,
-            'is_active' => $requestedActive,
-        ];
-
-        if ($request->filled('password')) {
-            $userData['password'] = Hash::make($validated['password']);
-        }
-
-        $user->update($userData);
-
-        // Sync role
-        $user->syncRoles([$requestedRole]);
-
-        return redirect()->route('users.index')
-            ->with('success', 'User updated successfully.');
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'User has been updated!');
     }
 
     public function destroy(User $user)
     {
-        // Prevent deleting yourself
-        if ($user->id === $this->currentUserId()) {
-            return back()->withErrors(['error' => 'You cannot delete your own account.']);
+        // Prevent deletion of super admin users
+        if ($user->isAdmin()) {
+            return redirect()
+                ->route('users.index')
+                ->with('error', 'System administrators cannot be deleted for security reasons.');
         }
 
-        if ($user->hasRole('admin') && $user->is_active && $this->activeAdminCount() <= 1) {
-            return back()->withErrors(['error' => 'You cannot delete the last active admin account.']);
-        }
-
-        // Check if user has related records
-        if ($user->sales()->count() > 0 || $user->expenses()->count() > 0) {
-            return back()->withErrors(['error' => 'Cannot delete user with existing records. Please deactivate instead.']);
+        /**
+         * Delete photo if exists.
+         */
+        if($user->photo){
+            unlink(public_path('storage/profile/') . $user->photo);
         }
 
         $user->delete();
 
-        return redirect()->route('users.index')
-            ->with('success', 'User deleted successfully.');
-    }
-
-    public function toggleStatus(User $user)
-    {
-        // Prevent deactivating yourself
-        if ($user->id === $this->currentUserId()) {
-            return back()->withErrors(['error' => 'You cannot deactivate your own account.']);
-        }
-
-        if ($user->hasRole('admin') && $user->is_active && $this->activeAdminCount() <= 1) {
-            return back()->withErrors(['error' => 'You cannot deactivate the last active admin account.']);
-        }
-
-        $user->update([
-            'is_active' => !$user->is_active,
-        ]);
-
-        $status = $user->is_active ? 'activated' : 'deactivated';
-        return back()->with('success', "User {$status} successfully.");
+        return redirect()
+            ->route('users.index')
+            ->with('success', 'User has been deleted!');
     }
 }
