@@ -2,33 +2,52 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class Unit extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory;
+    
+    // Units are universal - no shop scoping needed
+
+    protected $guarded = [
+        'id',
+    ];
 
     protected $fillable = [
         'name',
-        'short_name',
-        'is_active',
+        'slug',
+        'short_code',
+        'created_by',
     ];
 
     protected $casts = [
-        'is_active' => 'boolean',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
-    // Scopes
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    // Relationships
-    public function products()
+    public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+    
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function scopeSearch($query, $value): void
+    {
+        $query->where('name', 'like', "%{$value}%")
+            ->orWhere('slug', 'like', "%{$value}%")
+            ->orWhere('short_code', 'like', "%{$value}%");
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
     }
 }

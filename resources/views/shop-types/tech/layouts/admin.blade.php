@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+    <meta http-equiv="X-UA-Compatible" content="ie=edge"/>
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ config('app.name') }} - Admin Panel</title>
+    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}" />
+    <link rel="alternate icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
+
+    <!-- CSS files -->
+    <link href="{{ asset('dist/css/nexora.min.css') }}" rel="stylesheet"/>
+    <link href="{{ asset('css/custom-colors.css') }}" rel="stylesheet"/>
+    <link href="{{ asset('css/mobile-responsive.css') }}" rel="stylesheet"/>
+    <style>
+        @import url('https://rsms.me/inter/inter.css');
+
+        /* Global stability fixes */
+        * {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --nexora-font-sans-serif: 'Inter Var', -apple-system, BlinkMacSystemFont, San Francisco, Segoe UI, Roboto, Helvetica Neue, sans-serif;
+        }
+
+        body {
+            font-feature-settings: "cv03", "cv04", "cv11";
+            font-display: swap;
+        }
+
+        /* Prevent layout shifts globally */
+        .icon, svg.icon {
+            width: 18px !important;
+            height: 18px !important;
+            min-width: 18px;
+            min-height: 18px;
+            display: inline-block;
+            flex-shrink: 0;
+            vertical-align: middle;
+        }
+
+        .btn {
+            min-height: 38px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            contain: layout style;
+        }
+
+        .btn .icon {
+            margin-right: 0.375rem;
+        }
+
+        .btn-sm {
+            min-height: 32px !important;
+        }
+
+        /* Form controls stability */
+        .form-control, .form-select {
+            min-height: 38px !important;
+        }
+
+        /* Card stability */
+        .card {
+            contain: layout;
+        }
+
+        .card-header {
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+        }
+
+        /* Avatar stability */
+        .avatar {
+            width: 2.5rem !important;
+            height: 2.5rem !important;
+            min-width: 2.5rem;
+            min-height: 2.5rem;
+            flex-shrink: 0;
+            contain: layout;
+        }
+
+        .avatar-sm {
+            width: 1.75rem !important;
+            height: 1.75rem !important;
+            min-width: 1.75rem;
+            min-height: 1.75rem;
+        }
+
+        /* Badge stability */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 20px;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Modal stability */
+        .modal-dialog {
+            min-height: 200px;
+            contain: layout;
+        }
+
+        .modal-content {
+            min-height: 150px;
+        }
+
+        .modal-body {
+            min-height: 100px;
+        }
+
+        /* Spinner stability */
+        .spinner-border {
+            width: 2rem !important;
+            height: 2rem !important;
+            min-width: 2rem;
+            min-height: 2rem;
+            flex-shrink: 0;
+        }
+
+        .spinner-border-sm {
+            width: 1rem !important;
+            height: 1rem !important;
+            min-width: 1rem;
+            min-height: 1rem;
+        }
+
+        /* Image stability */
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Brand styling */
+        .navbar-brand-text {
+            color: #1f2937 !important;
+            text-decoration: none !important;
+        }
+
+        .navbar-brand:hover .navbar-brand-text {
+            color: #1f2937 !important;
+            text-decoration: none !important;
+        }
+
+        /* Admin specific styling */
+        .admin-navbar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .admin-navbar .nav-link {
+            color: rgba(255, 255, 255, 0.9) !important;
+        }
+
+        .admin-navbar .nav-link:hover {
+            color: #ffffff !important;
+        }
+
+        .admin-navbar .nav-link.active {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 0.375rem;
+        }
+
+        .admin-badge {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.5rem;
+            margin-left: 0.5rem;
+        }
+
+        /* Fix navbar dropdown visibility */
+        .navbar-expand-md {
+            overflow: visible !important;
+        }
+
+        .navbar-collapse {
+            overflow: visible !important;
+        }
+
+        .navbar {
+            overflow: visible !important;
+        }
+
+        /* Remove all space constraints from page containers */
+        .page {
+            overflow: visible !important;
+            height: auto !important;
+            min-height: 100vh !important;
+        }
+
+        .page-wrapper {
+            overflow: visible !important;
+            height: auto !important;
+        }
+
+        .page-body {
+            overflow: visible !important;
+            height: auto !important;
+        }
+
+        /* Ensure navbar and header don't have height constraints */
+        header.navbar,
+        header.navbar-expand-md {
+            overflow: visible !important;
+            height: auto !important;
+            max-height: none !important;
+            border: none !important;
+        }
+
+        /* Remove container constraints */
+        .container-xxl {
+            max-width: 100% !important;
+            padding-left: 1.5rem !important;
+            padding-right: 1.5rem !important;
+        }
+
+        /* Remove borders from navbar elements */
+        .navbar,
+        .navbar-collapse {
+            border: none !important;
+        }
+
+        .navbar .dropdown-menu {
+            position: absolute !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15) !important;
+            border: 1px solid #e6e8ea !important;
+            z-index: 1030 !important;
+        }
+
+        .navbar .dropdown-menu-columns {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+            min-width: 280px !important;
+        }
+
+        .navbar .dropdown-menu-column {
+            flex: 1 1 auto !important;
+            min-width: 140px !important;
+            padding: 0.5rem !important;
+        }
+
+        /* Keep admin navbar dropdowns directly under each menu item */
+        #navbar-menu .nav-item.dropdown {
+            position: relative !important;
+        }
+
+        #navbar-menu .nav-item.dropdown > .dropdown-menu {
+            top: calc(100% + 6px) !important;
+            left: 0 !important;
+            right: auto !important;
+            margin-top: 0 !important;
+        }
+
+        #navbar-menu .nav-item.dropdown > .dropdown-menu.dropdown-menu-end {
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        #navbar-menu .dropdown-menu.show,
+        #navbar-menu .dropdown.show > .dropdown-menu {
+            display: block !important;
+        }
+    </style>
+
+    <!-- Custom CSS for specific page.  -->
+    @stack('page-styles')
+    @livewireStyles
+</head>
+<body>
+    <div class="page">
+
+        @include('layouts.body.header')
+
+        @include('layouts.body.admin-navbar')
+
+        <div class="page-wrapper">
+            <div class="page-body">
+                <div class="container-xxl">
+                    @yield('content')
+                </div>
+            </div>
+
+            @include('layouts.body.footer')
+        </div>
+
+    </div>
+
+    <!-- JS files -->
+    <script src="{{ asset('dist/js/nexora.min.js') }}"></script>
+    <script src="{{ asset('js/plugins/lottiefiles.js') }}"></script>
+
+    <!-- Custom JS for specific page.  -->
+    @stack('page-scripts')
+    @livewireScripts
+
+</body>
+</html>

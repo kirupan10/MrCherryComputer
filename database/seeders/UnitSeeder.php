@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Unit;
 use Illuminate\Database\Seeder;
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 
 class UnitSeeder extends Seeder
 {
@@ -12,21 +13,39 @@ class UnitSeeder extends Seeder
      */
     public function run(): void
     {
-        $units = [
-            ['name' => 'Pieces', 'short_name' => 'pcs'],
-            ['name' => 'Kilogram', 'short_name' => 'kg'],
-            ['name' => 'Gram', 'short_name' => 'g'],
-            ['name' => 'Liter', 'short_name' => 'ltr'],
-            ['name' => 'Milliliter', 'short_name' => 'ml'],
-            ['name' => 'Box', 'short_name' => 'box'],
-            ['name' => 'Dozen', 'short_name' => 'dz'],
-            ['name' => 'Meter', 'short_name' => 'm'],
-            ['name' => 'Pack', 'short_name' => 'pack'],
-            ['name' => 'Bottle', 'short_name' => 'btl'],
-        ];
+        $units = collect([
+            [
+                'name' => 'Piece',
+                'slug' => 'piece',
+                'short_code' => 'pc'
+            ],
+            [
+                'name' => 'Centimeters',
+                'slug' => 'centimeters',
+                'short_code' => 'cm'
+            ],
+            [
+                'name' => 'Meters',
+                'slug' => 'meters',
+                'short_code' => 'm'
+            ],
+            [
+                'name' => 'Kilogram',
+                'slug' => 'kilogram',
+                'short_code' => 'kg'
+            ],
+            [
+                'name' => 'Litre',
+                'slug' => 'litre',
+                'short_code' => 'L'
+            ],
+        ]);
 
-        foreach ($units as $unit) {
-            Unit::create($unit);
-        }
+        $units->each(function ($unit){
+            // Make seeding idempotent by using slug or name as unique key
+            Unit::updateOrCreate([
+                'slug' => $unit['slug']
+            ], $unit);
+        });
     }
 }
