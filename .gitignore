@@ -1,24 +1,155 @@
-*.log
-.DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
+# Dependencies
 /node_modules
-/public/build
+/vendor
+/bower_components
+
+# Laravel specific
 /public/hot
 /public/storage
 /storage/*.key
-/storage/pail
-/vendor
+.phpunit.result.cache
 Homestead.json
 Homestead.yaml
+npm-debug.log
+yarn-error.log
+bootstrap/cache/*
+!bootstrap/cache/.gitignore
+/storage/debugbar/*
+!/storage/debugbar/.gitignore
+
+# Environment files
+.env
+.env.backup
+.env.production
+.env.staging
+.env.local
+.env.*.local
+.env.testing
+
+# Build outputs
+/public/build
+/public/mix-manifest.json
+/public/css/app.css
+/public/js/app.js
+/public/hot
+
+# IDE files
+/.fleet
+/.idea
+/.vscode
+/.vim
+/.vs
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+desktop.ini
+*.tmp
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/storage/logs/*.log
+*.log
+
+# Package manager lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Configuration
+auth.json
+composer.lock
+
+# Docker
+/.docker-sync
+docker-compose.override.yml
+.dockerignore
+
+# Deployment
+/deploy.sh
+/deploy-*.sh
+*.pem
+*.key
+*.crt
+
+# Uploaded files
+/public/letterheads/*
+!/public/letterheads/.gitkeep
+/storage/app/public/*
+!/storage/app/public/.gitignore
+/public/uploads/*
+!/public/uploads/.gitkeep
+
+# Backup files
+*.sqlite
+*.sqlite3
+*.bak
+
+
+# Test coverage
+/coverage
+/.phpunit.cache
+/_coverage
+/build
+/.phpunit.result.cache
+.phpunit.result.cache
+
+# Cache and temporary files
+/.cache
+/temp
+/tmp
+*.cache
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+
+# Laravel Debugbar
+storage/debugbar/
+
+# Laravel Telescope
+storage/telescope/
+
+# Laravel Nova
+/nova
+
+# Compiled class files
+*.class
+
+# PHP CS Fixer
+.php_cs
+.php_cs.cache
+.php-cs-fixer.cache
+
+# Psalm
+psalm.xml
+
+# Static analysis
+/.phpstan.cache
+/.psalm
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+node_modules
+node_modules
+node_modules
+/storage/framework
+/storage
+/storage/framework/views
+/storage/framework
+/storage/framework/views
+/storage/framework/views
