@@ -2,114 +2,78 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\Categories\StoreCategoryRequest;
-use App\Http\Requests\Categories\UpdateCategoryRequest;
 use App\Models\Category;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use App\Http\Requests\Category\StoreCategoryRequest;
+use App\Http\Requests\Category\UpdateCategoryRequest;
 
 class CategoryController extends Controller
 {
-    public function index(Request $request)
+    private function resolveCategoryView(string $page): string
     {
-        $query = Category::with('parent')->withCount('products');
+        $shopType = active_shop_type();
+        $shopType = $shopType ? shop_type_route_key($shopType) : 'tech';
+        $shopTypeView = "shop-types.{$shopType}.categories.{$page}";
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('slug', 'like', "%{$search}%");
-            });
+        if (view()->exists($shopTypeView)) {
+            return $shopTypeView;
         }
 
-        if ($request->filled('status')) {
-            $query->where('is_active', $request->status === 'active');
-        }
+        return "categories.{$page}";
+    }
 
-        if ($request->filled('type')) {
-            if ($request->type === 'parent') {
-                $query->whereNull('parent_id');
-            }
+    public function index()
+    {
+        // Eager-load creator relation to avoid N+1
+        $categories = Category::with('creator:id,name')->latest()->get();
 
-            if ($request->type === 'child') {
-                $query->whereNotNull('parent_id');
-            }
-        }
-
-        $categories = $query->latest()->paginate(15)->withQueryString();
-
-        return view('categories.index', compact('categories'));
+        return view($this->resolveCategoryView('index'), [
+            'categories' => $categories,
+        ]);
     }
 
     public function create()
     {
-        $parentCategories = Category::whereNull('parent_id')->get();
-        return view('categories.create', compact('parentCategories'));
-    }
-
-    public function show(Category $category)
-    {
-        $category->loadCount(['products', 'children'])->load('parent');
-
-        $recentProducts = $category->products()
-            ->latest()
-            ->limit(10)
-            ->get(['id', 'name', 'sku', 'is_active']);
-
-        return view('categories.show', compact('category', 'recentProducts'));
+        return view($this->resolveCategoryView('create'));
     }
 
     public function store(StoreCategoryRequest $request)
     {
-        $validated = $request->validated();
+        Category::create($request->validated());
 
-        if (empty($validated['slug'])) {
-            $validated['slug'] = Str::slug($validated['name']);
-        }
+        return redirect()
+            ->route('categories.index')
+            ->with('success', 'Category has been created!');
+    }
 
-        Category::create($validated);
-
-        return redirect()->route('categories.index')
-            ->with('success', 'Category created successfully.');
+    public function show(Category $category)
+    {
+        return view($this->resolveCategoryView('show'), [
+            'category' => $category
+        ]);
     }
 
     public function edit(Category $category)
     {
-        $parentCategories = Category::whereNull('parent_id')
-            ->where('id', '!=', $category->id)
-            ->get();
-        return view('categories.edit', compact('category', 'parentCategories'));
+        return view($this->resolveCategoryView('edit'), [
+            'category' => $category
+        ]);
     }
 
     public function update(UpdateCategoryRequest $request, Category $category)
     {
-        $validated = $request->validated();
+        $category->update($request->all());
 
-        if (empty($validated['slug'])) {
-            $validated['slug'] = Str::slug($validated['name']);
-        }
-
-        $category->update($validated);
-
-        return redirect()->route('categories.index')
-            ->with('success', 'Category updated successfully.');
+        return redirect()
+            ->route('categories.index')
+            ->with('success', 'Category has been updated!');
     }
 
     public function destroy(Category $category)
     {
-        // Check if category has associated products before deleting
-        if ($category->products()->exists()) {
-            return back()->withErrors(['error' => 'Cannot delete this category because it contains products. Please delete or reassign the products first.']);
-        }
-
-        // Check if category has child categories before deleting
-        if ($category->children()->exists()) {
-            return back()->withErrors(['error' => 'Cannot delete this category because it has child categories. Please reassign or remove child categories first.']);
-        }
-
         $category->delete();
 
-        return redirect()->route('categories.index')
-            ->with('success', 'Category deleted successfully.');
+        return redirect()
+            ->route('categories.index')
+            ->with('success', 'Category has been deleted!');
     }
 }

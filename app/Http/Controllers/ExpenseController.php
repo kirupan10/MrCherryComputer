@@ -3,241 +3,282 @@
 namespace App\Http\Controllers;
 
 use App\Models\Expense;
-use App\Models\ExpenseCategory;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 
 class ExpenseController extends Controller
 {
-    private function userHasRole(string $role): bool
-    {
-        $user = Auth::user();
-
-        if (!$user || !method_exists($user, 'hasRole')) {
-            return false;
-        }
-
-        return (bool) call_user_func([$user, 'hasRole'], $role);
-    }
-
+    /**
+     * Display a listing of expenses.
+     */
     public function index(Request $request)
     {
-        $query = Expense::with(['category', 'creator', 'approver']);
+        $shopId = $request->user()->shop_id ?? null;
+        $category = $request->input('category');
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('expense_number', 'like', "%{$search}%")
-                    ->orWhere('description', 'like', "%{$search}%")
-                    ->orWhere('reference_number', 'like', "%{$search}%");
-            });
+        $base = Expense::query();
+        if ($shopId) {
+            $base->where('shop_id', $shopId);
         }
 
-        if ($request->filled('category_id')) {
-            $query->where('expense_category_id', $request->category_id);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('from_date')) {
-            $query->whereDate('expense_date', '>=', $request->from_date);
-        }
-
-        if ($request->filled('to_date')) {
-            $query->whereDate('expense_date', '<=', $request->to_date);
-        }
-
-        $expenses = $query->latest('expense_date')->paginate(20);
-        $categories = ExpenseCategory::active()->get();
-
-        $stats = [
-            'total_expenses' => Expense::where('status', 'approved')->sum('amount'),
-            'pending_count' => Expense::where('status', 'pending')->count(),
-            'this_month' => Expense::where('status', 'approved')
-                ->whereMonth('expense_date', now()->month)
-                ->sum('amount'),
-        ];
-
-        return view('expenses.index', compact('expenses', 'categories', 'stats'));
-    }
-
-    public function create()
-    {
-        $categories = ExpenseCategory::active()->get();
-        return view('expenses.create', compact('categories'));
-    }
-
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'expense_category_id' => 'required|exists:expense_categories,id',
-            'amount' => 'required|numeric|min:0',
-            'expense_date' => 'required|date',
-            'payment_method' => 'required|in:cash,card,bank_transfer,cheque',
-            'reference_number' => 'nullable|string|max:100',
-            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'description' => 'nullable|string',
-            'status' => 'nullable|in:pending,paid,approved',
+        // Canonical category list — must match the options in the expense create form.
+        $expenseCategories = collect([
+            'Rent',
+            'Electricity',
+            'Repairs',
+            'Supplies',
+            'Internet',
+            'Transport',
+            'Office Supplies',
+            'Salaries',
+            'Marketing designing & Video Editing',
+            'Delivery Cost',
+            'Food',
+            'Other',
         ]);
 
-        // Handle receipt upload
-        if ($request->hasFile('receipt')) {
-            $validated['receipt_image'] = $request->file('receipt')->store('expenses', 'public');
+        // Per-category totals scoped to the same date window but NOT filtered by category,
+        // so every category always shows its spending amount.
+        $categoryTotalsBase = Expense::query();
+        if ($shopId) {
+            $categoryTotalsBase->where('shop_id', $shopId);
+        }
+        if ($startDate) {
+            $categoryTotalsBase->whereDate('expense_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $categoryTotalsBase->whereDate('expense_date', '<=', $endDate);
+        }
+        if (!$startDate && !$endDate) {
+            $categoryTotalsBase->whereMonth('expense_date', now()->month)
+                               ->whereYear('expense_date', now()->year);
+        }
+        $categoryTotals = $categoryTotalsBase
+            ->whereNotNull('type')
+            ->selectRaw('type, SUM(amount) as total')
+            ->groupBy('type')
+            ->pluck('total', 'type');
+
+        if ($category) {
+            $base->where(function($q) use ($category) {
+                $q->where('type', $category)
+                  ->orWhere('details->category', $category);
+            });
+        }
+        if ($startDate) {
+            $base->whereDate('expense_date', '>=', $startDate);
+        }
+        if ($endDate) {
+            $base->whereDate('expense_date', '<=', $endDate);
         }
 
-        $validated['status'] = $validated['status'] ?? 'pending';
-        $validated['created_by'] = Auth::id();
-
-        // Only admins can create approved expenses.
-        if (($validated['status'] ?? 'pending') === 'approved') {
-            if ($this->userHasRole('admin')) {
-                $validated['approved_by'] = Auth::id();
-            } else {
-                $validated['status'] = 'pending';
-            }
+        // If no date filters, default to current month
+        if (!$startDate && !$endDate) {
+            $base->whereMonth('expense_date', now()->month)
+                 ->whereYear('expense_date', now()->year);
         }
 
-        Expense::create($validated);
+        // Calculate totals from ALL expenses (before pagination)
+        $totalExpenses = (clone $base)->sum('amount');
+        $totalRecords = (clone $base)->count();
 
-        return redirect()->route('expenses.index')
-            ->with('success', 'Expense created successfully.');
+        // Paginate expenses (10 per page)
+        $paginatedExpenses = $base->with('delivery')
+                                  ->orderBy('expense_date', 'desc')
+                                  ->orderBy('created_at', 'desc')
+                                  ->paginate(10)
+                                  ->withQueryString();
+
+        // Group by month-year (for current page only)
+        $expensesByMonth = $paginatedExpenses->getCollection()->groupBy(function($expense) {
+            return $expense->expense_date->format('F Y');
+        });
+
+        return view('expenses.index', [
+            'expensesByMonth' => $expensesByMonth,
+            'totalExpenses' => $totalExpenses,
+            'totalRecords' => $totalRecords,
+            'paginatedExpenses' => $paginatedExpenses,
+            'expenseCategories' => $expenseCategories,
+            'categoryTotals' => $categoryTotals,
+        ]);
     }
 
+    /**
+     * Display a specific expense.
+     */
     public function show(Expense $expense)
     {
-        $expense->load(['category', 'creator', 'approver']);
+        // Authorization check
+        if ($expense->shop_id && $expense->shop_id !== request()->user()->shop_id) {
+            abort(403, 'Unauthorized access to this expense.');
+        }
+
+        $expense->load('creator');
         return view('expenses.show', compact('expense'));
     }
 
-    public function edit(Expense $expense)
+    /**
+     * Show expense create form.
+     */
+    public function create(Request $request)
     {
-        // Only allow editing pending expenses
-        if ($expense->status !== 'pending') {
-            return back()->withErrors(['error' => 'Only pending expenses can be edited.']);
+        $shopId = $request->user()->shop_id ?? null;
+
+        $base = Expense::query();
+        if ($shopId) {
+            $base->where('shop_id', $shopId);
         }
 
-        // Authorization check (only creator or admin can edit)
-        if (!$this->userHasRole('admin') && $expense->created_by !== Auth::id()) {
-            abort(403, 'Unauthorized access.');
-        }
+        // Use KpiService which calls stored procedure to get per-shop expense aggregates
+        $kpiService = new \App\Services\KpiService();
+        $expenseKpis = $kpiService->getExpenseKpisByShop($shopId);
 
-        $categories = ExpenseCategory::active()->get();
-        return view('expenses.edit', compact('expense', 'categories'));
+        $totalExpenses = $expenseKpis->total_expenses ?? 0;
+        $monthTotal = $expenseKpis->last_30_days_expenses ?? 0;
+        $weekTotal = 0; // week-level cached proc not implemented; compute on demand if needed
+        $typesCount = $expenseKpis->types_count ?? 0;
+
+    $recent = (clone $base)->latest('expense_date')->latest()->limit(10)->get();
+
+        return view('expenses.create', [
+            'totalExpenses' => $totalExpenses,
+            'monthTotal' => $monthTotal,
+            'weekTotal' => $weekTotal,
+            'typesCount' => $typesCount,
+            'expenses' => $recent,
+        ]);
     }
 
-    public function update(Request $request, Expense $expense)
+    /**
+     * Show edit form for an expense.
+     */
+    public function edit(Expense $expense)
     {
-        // Only allow updating pending expenses
-        if ($expense->status !== 'pending') {
-            return back()->withErrors(['error' => 'Only pending expenses can be updated.']);
+        // Staff members cannot edit expenses
+        if (auth()->user()->isEmployee()) {
+            abort(403, 'Staff members do not have permission to edit expenses.');
         }
 
         // Authorization check
-        if (!$this->userHasRole('admin') && $expense->created_by !== Auth::id()) {
-            abort(403, 'Unauthorized access.');
+        if ($expense->shop_id && $expense->shop_id !== request()->user()->shop_id) {
+            abort(403, 'Unauthorized access to this expense.');
         }
 
-        $validated = $request->validate([
-            'expense_category_id' => 'required|exists:expense_categories,id',
+        return view('expenses.edit', compact('expense'));
+    }
+
+    /**
+     * Update an expense.
+     */
+    public function update(Request $request, Expense $expense)
+    {
+        // Staff members cannot update expenses
+        if (auth()->user()->isEmployee()) {
+            abort(403, 'Staff members do not have permission to update expenses.');
+        }
+
+        // Authorization check
+        if ($expense->shop_id && $expense->shop_id !== $request->user()->shop_id) {
+            abort(403, 'Unauthorized access to this expense.');
+        }
+
+        $data = $request->validate([
+            'type' => 'nullable|string',
             'amount' => 'required|numeric|min:0',
-            'expense_date' => 'required|date',
-            'payment_method' => 'required|in:cash,card,bank_transfer,cheque',
-            'reference_number' => 'nullable|string|max:100',
-            'receipt' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
-            'description' => 'nullable|string',
-            'status' => 'nullable|in:pending,paid,approved',
+            'expense_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'details' => 'nullable|array',
         ]);
-
-        // Handle receipt upload
-        if ($request->hasFile('receipt')) {
-            // Delete old receipt
-            if ($expense->receipt_image) {
-                Storage::disk('public')->delete($expense->receipt_image);
-            }
-            $validated['receipt_image'] = $request->file('receipt')->store('expenses', 'public');
-        }
-
-        $targetStatus = $validated['status'] ?? $expense->status;
-
-        if ($targetStatus === 'approved') {
-            if ($this->userHasRole('admin')) {
-                $validated['approved_by'] = Auth::id();
-            } else {
-                $validated['status'] = 'pending';
-                $validated['approved_by'] = null;
-            }
-        } else {
-            $validated['approved_by'] = null;
-        }
-
-        $expense->update($validated);
-
-        return redirect()->route('expenses.index')
-            ->with('success', 'Expense updated successfully.');
-    }
-
-    public function approve(Expense $expense)
-    {
-        // Only admin can approve
-        if (!$this->userHasRole('admin')) {
-            abort(403, 'Only administrators can approve expenses.');
-        }
-
-        if ($expense->status !== 'pending') {
-            return back()->withErrors(['error' => 'Only pending expenses can be approved.']);
-        }
 
         $expense->update([
-            'status' => 'approved',
-            'approved_by' => Auth::id(),
+            'type' => $data['type'] ?? $expense->type,
+            'amount' => $data['amount'],
+            'expense_date' => $data['expense_date'] ?? $expense->expense_date,
+            'notes' => $data['notes'] ?? $expense->notes,
+            'details' => isset($data['details']) ? array_filter($data['details']) : $expense->details,
         ]);
 
-        return back()->with('success', 'Expense approved successfully.');
+        return redirect()->route('expenses.edit', $expense)->with('status', 'Expense updated');
     }
-
-    public function reject(Request $request, Expense $expense)
+    /**
+     * Store an expense record.
+     * Expected payload: type, amount (decimal), expense_date, notes, details
+     */
+    public function store(Request $request)
     {
-        // Only admin can reject
-        if (!$this->userHasRole('admin')) {
-            abort(403, 'Only administrators can reject expenses.');
-        }
-
-        if ($expense->status !== 'pending') {
-            return back()->withErrors(['error' => 'Only pending expenses can be rejected.']);
-        }
-
-        $rejectionReason = trim((string) $request->input('rejection_reason', 'Rejected by administrator'));
-
-        $expense->update([
-            'status' => 'paid',
-            'description' => trim(($expense->description ?? '') . "\nRejection note: " . $rejectionReason),
+        $data = $request->validate([
+            'type' => 'nullable|string',
+            'amount' => 'required|numeric|min:0',
+            'expense_date' => 'nullable|date',
+            'notes' => 'nullable|string',
+            'details' => 'nullable|array',
         ]);
 
-        return back()->with('success', 'Expense rejected and marked as paid.');
+
+        $expense = Expense::create([
+            'type' => $data['type'] ?? null,
+            'amount' => $data['amount'],
+            'expense_date' => $data['expense_date'] ?? now(),
+            'notes' => $data['notes'] ?? null,
+            'details' => !empty($data['details']) ? array_filter($data['details']) : null,
+            'shop_id' => $request->user()->shop_id ?? null,
+            'created_by' => $request->user()->id ?? null,
+        ]);
+
+        // Log this expense as an outgoing transaction
+        \App\Models\BusinessTransaction::create([
+            'shop_id' => $expense->shop_id,
+            'created_by' => $expense->created_by,
+            'transaction_date' => $expense->expense_date,
+            'transaction_type' => 'expense',
+            // Use expense type as vendor/supplier for clarity
+            'vendor_name' => $expense->type,
+            'receipt_number' => null,
+            'reference_number' => null,
+            'paid_by' => null,
+            'paid_by_user_id' => null,
+            'total_amount' => $expense->amount,
+            'discount_amount' => 0,
+            'net_amount' => $expense->amount,
+            'description' => $expense->notes,
+            'items' => null,
+            'category' => $expense->type,
+            'status' => 'completed',
+            'attachment_path' => null,
+        ]);
+
+        // If the client expects JSON (API or AJAX), return JSON. Otherwise redirect
+        // to the expense create page so the user can add more records.
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json(['status' => 'ok', 'expense_id' => $expense->id], 201);
+        }
+
+        return redirect()
+            ->route('expenses.create')
+            ->with('success', 'Expense recorded successfully');
     }
 
+    /**
+     * Delete an expense.
+     */
     public function destroy(Expense $expense)
     {
-        // Only admin can delete, and only pending/rejected expenses
-        if (!$this->userHasRole('admin')) {
-            abort(403, 'Only administrators can delete expenses.');
+        // Staff members cannot delete expenses
+        if (auth()->user()->isEmployee()) {
+            abort(403, 'Staff members do not have permission to delete expenses.');
         }
 
-        if ($expense->status === 'approved') {
-            return back()->withErrors(['error' => 'Cannot delete approved expenses.']);
-        }
-
-        // Delete receipt
-        if ($expense->receipt_image) {
-            Storage::disk('public')->delete($expense->receipt_image);
+        // Authorization check
+        if ($expense->shop_id && $expense->shop_id !== request()->user()->shop_id) {
+            abort(403, 'Unauthorized access to this expense.');
         }
 
         $expense->delete();
 
-        return redirect()->route('expenses.index')
-            ->with('success', 'Expense deleted successfully.');
+        return redirect()
+            ->route('expenses.index')
+            ->with('success', 'Expense deleted successfully');
     }
 }
