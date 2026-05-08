@@ -31,7 +31,7 @@ class SampleDataSeeder extends Seeder
             ]);
 
             $shopId = DB::table('shops')->insertGetId([
-                'name' => 'TechPro Computer Shop',
+                'name' => 'Cherry Computer Shop',
                 'shop_type' => 'tech_shop',
                 'address' => 'No. 128, Galle Road, Wellawatte, Colombo 06',
                 'phone' => '+94 77 345 6789',
