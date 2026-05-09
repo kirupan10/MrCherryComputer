@@ -21,7 +21,7 @@ class ShopTypeSampleSeeder extends Seeder
         $shopData = [
             [
                 'type' => ShopType::TECH_SHOP,
-                'shop_name' => 'TechPro Computer Shop',
+                'shop_name' => 'Cherry Computer Shop',
                 'owner' => ['name' => 'James Tech', 'username' => 'tech_owner', 'email' => 'tech@nexora.com'],
                 'manager' => ['name' => 'Lisa Manager', 'username' => 'tech_manager', 'email' => 'tech.mgr@nexora.com'],
                 'employee' => ['name' => 'Tom Staff', 'username' => 'tech_staff', 'email' => 'tech.staff@nexora.com'],
