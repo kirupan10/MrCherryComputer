@@ -16,22 +16,9 @@ class Expense extends Model
     protected $casts = [
         'expense_date' => 'date',
         'details' => 'array',
+        'amount' => 'decimal:2',
     ];
 
-<<<<<<< HEAD
-    /**
-     * Get the delivery record that generated this expense (if any)
-     */
-    public function delivery(): HasOne
-    {
-        return $this->hasOne(Delivery::class, 'expense_id');
-    }
-
-    /**
-     * Get the user who created this expense
-     */
-    public function creator(): BelongsTo
-=======
     // Status Constants
     const STATUS_PENDING = 'pending';
     const STATUS_APPROVED = 'approved';
@@ -42,7 +29,6 @@ class Expense extends Model
         parent::boot();
 
         static::creating(function ($expense) {
-
             // Auto Expense Number
             if (empty($expense->expense_number)) {
                 $expense->expense_number = self::generateExpenseNumber();
@@ -55,42 +41,38 @@ class Expense extends Model
         });
     }
 
-    // Generate Expense Number
+    /**
+     * Generate a unique expense number
+     */
     public static function generateExpenseNumber()
     {
         $latest = self::latest('id')->first();
-
         $number = $latest ? $latest->id + 1 : 1;
 
-        return 'EXP-' . date('Ymd') . '-' .
-            str_pad($number, 5, '0', STR_PAD_LEFT);
+        return 'EXP-' . date('Ymd') . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
     }
 
     // =========================
     // Relationships
     // =========================
 
-    public function category()
+    /**
+     * Get the delivery record that generated this expense (if any)
+     */
+    public function delivery(): HasOne
     {
-        return $this->belongsTo(ExpenseCategory::class, 'expense_category_id');
-    }
-
-    public function creator()
->>>>>>> 0e37cabe230003180f72b2b20d262a05fa72129c
-    {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->hasOne(Delivery::class, 'expense_id');
     }
 
     /**
-     * Get the shop that owns this expense
+     * Get the user who approved this expense
      */
-    public function shop(): BelongsTo
+    public function approver(): BelongsTo
     {
-<<<<<<< HEAD
-        return $this->belongsTo(Shop::class);
-=======
         return $this->belongsTo(User::class, 'approved_by');
     }
+
+    // Note: shop() and creator() are provided by BelongsToShop trait
 
     // =========================
     // Scopes
@@ -105,7 +87,6 @@ class Expense extends Model
     {
         return $query->whereMonth('expense_date', now()->month)
                      ->whereYear('expense_date', now()->year);
->>>>>>> 0e37cabe230003180f72b2b20d262a05fa72129c
     }
 
     public function scopeApproved($query)
@@ -142,7 +123,7 @@ class Expense extends Model
 
     public function approve($userId)
     {
-        $this->update([
+        return $this->update([
             'status' => self::STATUS_APPROVED,
             'approved_by' => $userId,
         ]);
@@ -150,7 +131,7 @@ class Expense extends Model
 
     public function reject()
     {
-        $this->update([
+        return $this->update([
             'status' => self::STATUS_REJECTED,
         ]);
     }
