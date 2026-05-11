@@ -415,6 +415,7 @@ class PurchaseController extends Controller
 
             // Delete associated business transactions
             $transactions = BusinessTransaction::where('shop_id', $user->shop_id)
+                ->with(['creator', 'paidByUser'])
                 ->where('description', 'like', "%Purchase #{$creditPurchase->id}%")
                 ->get();
 
