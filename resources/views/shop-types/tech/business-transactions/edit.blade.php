@@ -36,57 +36,28 @@
                         </div>
                         <div class="card-body">
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <label class="form-label required">Transaction Date & Time</label>
                                     <input type="datetime-local" name="transaction_date" class="form-control @error('transaction_date') is-invalid @enderror" value="{{ old('transaction_date', $businessTransaction->transaction_date->format('Y-m-d\TH:i')) }}" required>
                                     @error('transaction_date')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label required">Transaction Type</label>
-                                    <select name="transaction_type" class="form-select @error('transaction_type') is-invalid @enderror" required>
-                                        <option value="">Select Type</option>
-                                        <option value="purchase" {{ old('transaction_type', $businessTransaction->transaction_type) == 'purchase' ? 'selected' : '' }}>Purchase</option>
-                                        <option value="expense" {{ old('transaction_type', $businessTransaction->transaction_type) == 'expense' ? 'selected' : '' }}>Expense</option>
-                                        <option value="payment" {{ old('transaction_type', $businessTransaction->transaction_type) == 'payment' ? 'selected' : '' }}>Payment</option>
-                                        <option value="refund" {{ old('transaction_type', $businessTransaction->transaction_type) == 'refund' ? 'selected' : '' }}>Refund</option>
-                                        <option value="commission" {{ old('transaction_type', $businessTransaction->transaction_type) == 'commission' ? 'selected' : '' }}>Commission</option>
-                                        <option value="owner_personal" {{ old('transaction_type', $businessTransaction->transaction_type) == 'owner_personal' ? 'selected' : '' }}>Owner Personal Expenses</option>
-                                        <option value="other" {{ old('transaction_type', $businessTransaction->transaction_type) == 'other' ? 'selected' : '' }}>Other</option>
-                                    </select>
-                                    @error('transaction_type')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <label class="form-label">Vendor/Supplier Name</label>
                                     <input type="text" name="vendor_name" class="form-control @error('vendor_name') is-invalid @enderror" value="{{ old('vendor_name', $businessTransaction->vendor_name) }}" placeholder="Enter vendor name">
                                     @error('vendor_name')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Receipt Number (from Vendor)</label>
-                                    <input type="text" name="receipt_number" class="form-control @error('receipt_number') is-invalid @enderror" value="{{ old('receipt_number', $businessTransaction->receipt_number) }}" placeholder="Vendor receipt number">
-                                    @error('receipt_number')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
                             </div>
 
+
                             <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Reference Number (Our Transaction)</label>
-                                    <input type="text" name="reference_number" class="form-control @error('reference_number') is-invalid @enderror" value="{{ old('reference_number', $businessTransaction->reference_number) }}" placeholder="Bank transfer reference">
-                                    @error('reference_number')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <label class="form-label">Category</label>
                                     <select name="category" class="form-select @error('category') is-invalid @enderror">
                                         <option value="">Select Category</option>
@@ -106,32 +77,14 @@
                             </div>
 
                             <div class="row mb-3">
-                                <div class="col-md-6">
+                                <div class="col-md-12">
                                     <label class="form-label">Paid By (Method)</label>
                                     <select name="paid_by" class="form-select @error('paid_by') is-invalid @enderror">
                                         <option value="">Select Payment Method</option>
                                         <option value="cash" {{ old('paid_by', $businessTransaction->paid_by) == 'cash' ? 'selected' : '' }}>Cash</option>
                                         <option value="card" {{ old('paid_by', $businessTransaction->paid_by) == 'card' ? 'selected' : '' }}>Card</option>
-                                        <option value="bank_transfer" {{ old('paid_by', $businessTransaction->paid_by) == 'bank_transfer' ? 'selected' : '' }}>Bank Transfer</option>
-                                        <option value="upi" {{ old('paid_by', $businessTransaction->paid_by) == 'upi' ? 'selected' : '' }}>UPI</option>
-                                        <option value="credit" {{ old('paid_by', $businessTransaction->paid_by) == 'credit' ? 'selected' : '' }}>Credit</option>
-                                        <option value="cheque" {{ old('paid_by', $businessTransaction->paid_by) == 'cheque' ? 'selected' : '' }}>Cheque</option>
                                     </select>
                                     @error('paid_by')
-                                        <div class="invalid-feedback">{{ $message }}</div>
-                                    @enderror
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Paid By (User)</label>
-                                    <select name="paid_by_user_id" class="form-select @error('paid_by_user_id') is-invalid @enderror">
-                                        <option value="">Select User</option>
-                                        @foreach($users as $user)
-                                            <option value="{{ $user->id }}" {{ old('paid_by_user_id', $businessTransaction->paid_by_user_id) == $user->id ? 'selected' : '' }}>
-                                                {{ $user->name }}
-                                            </option>
-                                        @endforeach
-                                    </select>
-                                    @error('paid_by_user_id')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
