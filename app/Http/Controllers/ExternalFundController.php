@@ -124,14 +124,15 @@ class ExternalFundController extends Controller
             'amount' => 'required|numeric|min:0',
             'interest_rate' => 'nullable|numeric|min:0|max:100',
             'repayment_terms' => 'nullable|string',
-            'start_date' => 'required|date',
-            'maturity_date' => 'nullable|date|after:start_date',
+            'start_date' => 'nullable|date',
+            'maturity_date' => 'nullable|date',
             'notes' => 'nullable|string',
-            'status' => 'required|in:active,completed,defaulted',
+            'status' => 'nullable|in:active,completed,defaulted',
         ]);
 
         $validated['shop_id'] = $activeShop->id;
         $validated['created_by'] = auth()->id();
+        $validated['status'] = $validated['status'] ?? 'active';
 
         ExternalFund::create($validated);
 
@@ -180,11 +181,15 @@ class ExternalFundController extends Controller
             'amount' => 'required|numeric|min:0',
             'interest_rate' => 'nullable|numeric|min:0|max:100',
             'repayment_terms' => 'nullable|string',
-            'start_date' => 'required|date',
-            'maturity_date' => 'nullable|date|after:start_date',
+            'start_date' => 'nullable|date',
+            'maturity_date' => 'nullable|date',
             'notes' => 'nullable|string',
-            'status' => 'required|in:active,completed,defaulted',
+            'status' => 'nullable|in:active,completed,defaulted',
         ]);
+
+        if (empty($validated['status'])) {
+            unset($validated['status']);
+        }
 
         $externalFund->update($validated);
 
