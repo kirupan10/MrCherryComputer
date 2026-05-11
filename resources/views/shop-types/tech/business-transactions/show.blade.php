@@ -76,12 +76,6 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold text-uppercase" style="font-size: 0.75rem; color: #6c757d;">Transaction Type</label>
-                                    <div><span class="badge bg-blue-lt">{{ $businessTransaction->formatted_type }}</span></div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
                                     <label class="form-label fw-bold text-uppercase" style="font-size: 0.75rem; color: #6c757d;">Vendor/Supplier</label>
                                     <div>{{ $businessTransaction->vendor_name ?? 'N/A' }}</div>
                                 </div>
@@ -94,12 +88,6 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
-                                    <label class="form-label fw-bold text-uppercase" style="font-size: 0.75rem; color: #6c757d;">Reference Number (Our Transaction)</label>
-                                    <div>{{ $businessTransaction->reference_number ?? '-' }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
                                     <label class="form-label fw-bold text-uppercase" style="font-size: 0.75rem; color: #6c757d;">Category</label>
                                     <div>{{ ucfirst($businessTransaction->category ?? 'N/A') }}</div>
                                 </div>
@@ -108,12 +96,6 @@
                                 <div class="mb-3">
                                     <label class="form-label fw-bold text-uppercase" style="font-size: 0.75rem; color: #6c757d;">Payment Method</label>
                                     <div>{{ $businessTransaction->formatted_paid_by }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label fw-bold text-uppercase" style="font-size: 0.75rem; color: #6c757d;">Paid By User</label>
-                                    <div>{{ $businessTransaction->paidByUser->name ?? 'N/A' }}</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
