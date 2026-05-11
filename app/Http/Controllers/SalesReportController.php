@@ -557,7 +557,7 @@ class SalesReportController extends Controller
                 'total',
                 'due'
             )
-            ->with('customer:id,name')
+            ->with(['customer:id,name', 'details.product'])
             ->orderBy('created_at', 'desc')
             ->paginate(10, ['*'], 'sales_page');
     }
@@ -565,6 +565,7 @@ class SalesReportController extends Controller
     private function getDailyTransactions($date)
     {
         return BusinessTransaction::whereDate('transaction_date', $date)
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -572,7 +573,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->paginate(10);
@@ -582,13 +585,16 @@ class SalesReportController extends Controller
     {
         return BusinessTransaction::whereDate('transaction_date', $date)
             ->where('transaction_type', 'purchase')
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'vendor_name',
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->paginate(10);
@@ -607,13 +613,16 @@ class SalesReportController extends Controller
     {
         return BusinessTransaction::whereDate('transaction_date', $date)
             ->where('transaction_type', 'purchase')
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'vendor_name',
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->get();
@@ -622,6 +631,7 @@ class SalesReportController extends Controller
     private function getAllDailyTransactions($date)
     {
         return BusinessTransaction::whereDate('transaction_date', $date)
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -629,7 +639,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->get();
@@ -736,6 +748,7 @@ class SalesReportController extends Controller
         $endOfWeek = $date->copy()->endOfWeek();
 
         return BusinessTransaction::whereBetween('transaction_date', [$startOfWeek, $endOfWeek])
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -743,7 +756,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->paginate(10);
@@ -755,6 +770,7 @@ class SalesReportController extends Controller
         $endOfWeek = $date->copy()->endOfWeek();
 
         return BusinessTransaction::whereBetween('transaction_date', [$startOfWeek, $endOfWeek])
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -762,7 +778,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->get();
@@ -879,6 +897,7 @@ class SalesReportController extends Controller
         $endOfMonth = $date->copy()->endOfMonth();
 
         return BusinessTransaction::whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -886,7 +905,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->paginate(10);
@@ -898,6 +919,7 @@ class SalesReportController extends Controller
         $endOfMonth = $date->copy()->endOfMonth();
 
         return BusinessTransaction::whereBetween('transaction_date', [$startOfMonth, $endOfMonth])
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -905,7 +927,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->get();
@@ -1058,6 +1082,7 @@ class SalesReportController extends Controller
         $endOfYear = $date->copy()->endOfYear();
 
         return BusinessTransaction::whereBetween('transaction_date', [$startOfYear, $endOfYear])
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -1065,7 +1090,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->paginate(10);
@@ -1077,6 +1104,7 @@ class SalesReportController extends Controller
         $endOfYear = $date->copy()->endOfYear();
 
         return BusinessTransaction::whereBetween('transaction_date', [$startOfYear, $endOfYear])
+            ->with(['creator', 'paidByUser'])
             ->select(
                 'id',
                 'transaction_type',
@@ -1084,7 +1112,9 @@ class SalesReportController extends Controller
                 'total_amount',
                 'status',
                 'category',
-                'transaction_date'
+                'transaction_date',
+                'created_by',
+                'paid_by_user_id'
             )
             ->orderBy('transaction_date', 'desc')
             ->get();
@@ -1463,6 +1493,7 @@ class SalesReportController extends Controller
 
         // Get transactions for the selected month
         $transactions = BusinessTransaction::where('shop_id', $activeShop->id)
+            ->with(['creator', 'paidByUser'])
             ->whereBetween('transaction_date', [$startDate, $endDate])
             ->orderBy('transaction_date', 'desc')
             ->get();
@@ -1518,6 +1549,7 @@ class SalesReportController extends Controller
         $endDate = $selectedMonth->copy()->endOfMonth();
 
         $transactions = BusinessTransaction::where('shop_id', $activeShop->id)
+            ->with(['creator', 'paidByUser'])
             ->whereBetween('transaction_date', [$startDate, $endDate])
             ->orderBy('transaction_date', 'desc')
             ->get();
