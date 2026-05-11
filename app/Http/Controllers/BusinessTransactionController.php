@@ -51,7 +51,7 @@ class BusinessTransactionController extends Controller
         }
 
         $query = BusinessTransaction::where('shop_id', $activeShop->id)
-            ->with(['paidByUser']);
+            ->with(['paidByUser', 'creator']);
 
         // Filter by transaction type
         if ($request->filled('type')) {
@@ -142,7 +142,7 @@ class BusinessTransactionController extends Controller
 
         $validated = $request->validate([
             'transaction_date' => 'required|date',
-            'transaction_type' => 'required|string|max:50',
+            'transaction_type' => 'nullable|string|max:50',
             'vendor_name' => 'nullable|string|max:255',
             'receipt_number' => 'nullable|string|max:255',
             'reference_number' => 'nullable|string|max:255',
@@ -160,6 +160,11 @@ class BusinessTransactionController extends Controller
         // Calculate net amount
         $validated['net_amount'] = $validated['total_amount']
             - ($validated['discount_amount'] ?? 0);
+
+        // Set default type if missing
+        if (empty($validated['transaction_type'])) {
+            $validated['transaction_type'] = 'expense';
+        }
 
         // Handle file upload
         if ($request->hasFile('attachment')) {
@@ -267,7 +272,7 @@ class BusinessTransactionController extends Controller
 
         $validated = $request->validate([
             'transaction_date' => 'required|date',
-            'transaction_type' => 'required|string|max:50',
+            'transaction_type' => 'nullable|string|max:50',
             'vendor_name' => 'nullable|string|max:255',
             'receipt_number' => 'nullable|string|max:255',
             'reference_number' => 'nullable|string|max:255',
@@ -285,6 +290,11 @@ class BusinessTransactionController extends Controller
         // Calculate net amount
         $validated['net_amount'] = $validated['total_amount']
             - ($validated['discount_amount'] ?? 0);
+
+        // Set default type if missing
+        if (empty($validated['transaction_type'])) {
+            $validated['transaction_type'] = 'expense';
+        }
 
         // Handle file upload
         if ($request->hasFile('attachment')) {
