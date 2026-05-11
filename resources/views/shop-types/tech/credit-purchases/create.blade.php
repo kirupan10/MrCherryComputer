@@ -67,14 +67,7 @@
                             <input type="hidden" name="vendor_id" id="vendor_id" value="{{ old('vendor_id') }}">
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Reference Number</label>
-                            <input type="text" name="reference_number" class="form-control @error('reference_number') is-invalid @enderror"
-                                   value="{{ old('reference_number') }}" placeholder="Invoice or PO number">
-                            @error('reference_number')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
-                        </div>
+
                     </div>
 
                     <div class="card-divider"></div>
@@ -133,24 +126,6 @@
                                 @error('purchase_date')
                                     <span class="invalid-feedback">{{ $message }}</span>
                                 @enderror
-                            </div>
-                        </div>
-
-                        <div class="row" id="credit-days-section" style="display: none;">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Credit Days <span class="text-danger">*</span></label>
-                                <input type="number" name="credit_days" class="form-control @error('credit_days') is-invalid @enderror"
-                                       value="{{ old('credit_days', 30) }}" min="1">
-                                <small class="text-muted">Due date will be calculated based on this</small>
-                                @error('credit_days')
-                                    <span class="invalid-feedback">{{ $message }}</span>
-                                @enderror
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Due Date</label>
-                                <input type="date" class="form-control" id="dueDate" disabled>
-                                <small class="text-muted">Calculated automatically</small>
                             </div>
                         </div>
 
@@ -237,45 +212,10 @@
                 </form>
             </div>
 
-            <!-- Help Sidebar -->
-            <div class="col-lg-4">
-                <div class="card bg-light-primary">
-                    <div class="card-body">
-                        <h4 class="card-title mb-3" style="font-weight: 600;">Help & Tips</h4>
-                        <ul class="list-unstyled space-y">
-                            <li>
-                                <strong>Purchase Type:</strong>
-                                <small class="d-block mt-1">
-                                    <strong>Cash:</strong> Immediate payment - transaction completed instantly<br>
-                                    <strong>Cheque:</strong> Payment by cheque - requires cheque details (number, bank, date). Details will be recorded in Cheque Management<br>
-                                    <strong>Credit:</strong> Payment on credit terms with due date
-                                </small>
-                            </li>
-                            <li class="mt-2">
-                                <strong>Vendor Selection:</strong> Select the supplier from the dropdown. You can also add a new supplier using the + button.
-                            </li>
-                            <li class="mt-2">
-                                <strong>Purchase Amount:</strong> Enter the total purchase amount in LKR currency
-                            </li>
-                            <li class="mt-2">
-                                <strong>Cheque Details:</strong> Only required for cheque purchases. Enter cheque number, bank details, and cheque date for proper tracking
-                            </li>
-                            <li class="mt-2">
-                                <strong>Credit Days:</strong> Only required for credit purchases. Number of days allowed to pay (e.g., 30 days). Due date will be calculated automatically
-                            </li>
-                            <li class="mt-2">
-                                <strong>Reference Number:</strong> Optional - invoice number or PO number from vendor for tracking
-                            </li>
-                            <li class="mt-2">
-                                <strong>Notes:</strong> Add any special terms, conditions, or important information about this purchase
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
+
 
 <link href="{{ asset('vendor/tom-select/tom-select.bootstrap5.min.css') }}" rel="stylesheet">
 <script src="{{ asset('vendor/tom-select/tom-select-latest.complete.min.js') }}"></script>
@@ -332,9 +272,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const purchaseDate = document.querySelector('input[name="purchase_date"]');
-    const creditDays = document.querySelector('input[name="credit_days"]');
-    const dueDate = document.getElementById('dueDate');
-    const creditDaysSection = document.getElementById('credit-days-section');
     const purchaseTypeRadios = document.querySelectorAll('input[name="purchase_type"]');
 
     // Initialize TomSelect for vendor dropdown
@@ -374,18 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const chequeDate = document.getElementById('cheque_date');
     const bankName = document.getElementById('bank_name');
 
-    function updateCreditDaysVisibility() {
+    function updatePurchaseVisibility() {
         const selectedType = document.querySelector('input[name="purchase_type"]:checked').value;
-
-        // Handle Credit Days Section
-        if (selectedType === 'credit') {
-            creditDaysSection.style.display = '';
-            creditDays.setAttribute('required', 'required');
-        } else {
-            creditDaysSection.style.display = 'none';
-            creditDays.removeAttribute('required');
-            creditDays.value = 30; // Reset to default
-        }
 
         // Handle Cheque Details Section
         if (selectedType === 'cheque') {
@@ -401,24 +328,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    function calculateDueDate() {
-        if (purchaseDate.value && creditDays.value) {
-            const date = new Date(purchaseDate.value);
-            date.setDate(date.getDate() + parseInt(creditDays.value));
-            dueDate.value = date.toISOString().split('T')[0];
-        }
-    }
-
-    purchaseDate.addEventListener('change', calculateDueDate);
-    creditDays.addEventListener('change', calculateDueDate);
+    purchaseDate.addEventListener('change', () => {}); // No-op
 
     purchaseTypeRadios.forEach(radio => {
-        radio.addEventListener('change', updateCreditDaysVisibility);
+        radio.addEventListener('change', updatePurchaseVisibility);
     });
 
     // Initialize on page load
-    updateCreditDaysVisibility();
-    calculateDueDate();
+    updatePurchaseVisibility();
 
     // Vendor Selection Handler with TomSelect
     const vendorId = document.getElementById('vendor_id');
