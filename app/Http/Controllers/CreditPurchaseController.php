@@ -84,7 +84,7 @@ class CreditPurchaseController extends Controller
             'vendor_address' => 'nullable|string',
             'total_amount' => 'required|numeric|min:0.01',
             'purchase_date' => 'required|date',
-            'credit_days' => 'required_if:purchase_type,credit|nullable|integer|min:1',
+            'credit_days' => 'nullable|integer|min:0',
             'purchase_type' => 'required|in:cash,cheque,credit',
             'reference_number' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
@@ -96,7 +96,8 @@ class CreditPurchaseController extends Controller
 
         // Calculate due date
         $purchaseDate = Carbon::parse($validated['purchase_date']);
-        $dueDate = $purchaseDate->copy()->addDays($validated['credit_days']);
+        $creditDays = $validated['credit_days'] ?? 0;
+        $dueDate = $purchaseDate->copy()->addDays($creditDays);
 
         $purchase = CreditPurchase::create([
             'shop_id' => $shopId,
@@ -110,7 +111,7 @@ class CreditPurchaseController extends Controller
             'due_amount' => $validated['total_amount'],
             'purchase_date' => $purchaseDate,
             'due_date' => $dueDate,
-            'credit_days' => $validated['credit_days'],
+            'credit_days' => $creditDays,
             'status' => 'pending',
             'purchase_type' => $validated['purchase_type'],
             'reference_number' => $validated['reference_number'],
@@ -166,7 +167,7 @@ class CreditPurchaseController extends Controller
             'vendor_address' => 'nullable|string',
             'total_amount' => 'required|numeric|min:0.01',
             'purchase_date' => 'required|date',
-            'credit_days' => 'required|integer|min:1',
+            'credit_days' => 'nullable|integer|min:0',
             'reference_number' => 'nullable|string|max:255',
             'notes' => 'nullable|string',
         ]);
@@ -177,7 +178,8 @@ class CreditPurchaseController extends Controller
 
         // Calculate new due date
         $purchaseDate = Carbon::parse($validated['purchase_date']);
-        $dueDate = $purchaseDate->copy()->addDays($validated['credit_days']);
+        $creditDays = $validated['credit_days'] ?? 0;
+        $dueDate = $purchaseDate->copy()->addDays($creditDays);
 
         // Recalculate status based on paid amount vs new total amount
         $status = 'pending';
@@ -198,7 +200,7 @@ class CreditPurchaseController extends Controller
             'due_amount' => $newDueAmount,
             'purchase_date' => $purchaseDate,
             'due_date' => $dueDate,
-            'credit_days' => $validated['credit_days'],
+            'credit_days' => $creditDays,
             'reference_number' => $validated['reference_number'],
             'notes' => $validated['notes'],
             'status' => $status,
