@@ -92,15 +92,6 @@
                         <h3 class="card-title">All Transactions</h3>
                         <div class="ms-auto">
                             <form method="GET" action="{{ route('business-transactions.index') }}" class="d-flex gap-2">
-                                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
-                                    <option value="">All Types</option>
-                                    <option value="purchase" {{ request('type') == 'purchase' ? 'selected' : '' }}>Purchase</option>
-                                    <option value="expense" {{ request('type') == 'expense' ? 'selected' : '' }}>Expense</option>
-                                    <option value="payment" {{ request('type') == 'payment' ? 'selected' : '' }}>Payment</option>
-                                    <option value="refund" {{ request('type') == 'refund' ? 'selected' : '' }}>Refund</option>
-                                    <option value="commission" {{ request('type') == 'commission' ? 'selected' : '' }}>Commission</option>
-                                    <option value="owner_personal" {{ request('type') == 'owner_personal' ? 'selected' : '' }}>Owner Personal Expenses</option>
-                                </select>
                                 <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
                                     <option value="">All Status</option>
                                     <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
@@ -122,10 +113,7 @@
                                     <thead>
                                         <tr>
                                             <th style="width: 140px;">Date</th>
-                                            <th style="width: 120px;">Type</th>
                                             <th>Vendor/Supplier</th>
-                                            <th>Reference #</th>
-                                            <th>Paid By User</th>
                                             <th style="width: 140px;" class="text-end">Amount</th>
                                             <th style="width: 100px;">Status</th>
                                             <th style="width: 140px;">Actions</th>
@@ -137,12 +125,7 @@
                                                 <td style="font-size: 0.9rem;">
                                                     <strong>{{ $transaction->transaction_date->format('d M Y') }}</strong>
                                                 </td>
-                                                <td>
-                                                    <span class="badge bg-blue-lt" style="font-size: 0.85rem;">{{ $transaction->formatted_type }}</span>
-                                                </td>
                                                 <td style="color: #2c3e50; font-weight: 500;">{{ $transaction->vendor_name ?? 'N/A' }}</td>
-                                                <td style="color: #495057;">{{ $transaction->reference_number ?? '-' }}</td>
-                                                <td style="color: #2c3e50;">{{ $transaction->paidByUser->name ?? '-' }}</td>
                                                 <td class="text-end"><strong style="color: #198754; font-size: 1.05rem;">LKR {{ number_format($transaction->net_amount, 2) }}</strong></td>
                                                 <td>
                                                     @if($transaction->status === 'completed')
