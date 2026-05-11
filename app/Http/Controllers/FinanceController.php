@@ -209,7 +209,7 @@ class FinanceController extends Controller
 
         // Get detailed transactions
         $salesOrders = Order::where('shop_id', $shopId)
-            ->with('customer')
+            ->with(['customer', 'details.product'])
             ->whereDate('created_at', '>=', $startDate->toDateString())
             ->whereDate('created_at', '<=', $endDate->toDateString())
             ->orderBy('created_at', 'desc')
@@ -225,6 +225,7 @@ class FinanceController extends Controller
             ->get();
 
         $businessTransactions = BusinessTransaction::where('shop_id', $shopId)
+            ->with(['creator', 'paidByUser'])
             ->whereBetween('transaction_date', [$startDate, $endDate])
             ->orderBy('transaction_date', 'desc')
             ->get();
@@ -1060,7 +1061,7 @@ class FinanceController extends Controller
                     $product = $detail->product;
                     if ($product) {
                         $product->refresh(); // Bypass any cache
-                        $currentBuyingPrice = $product->buyingPrice ?? $detail->buying_price;
+                        $currentBuyingPrice = $product->buying_price ?? $detail->buying_price;
 
                         // Calculate new profit (using current product buying price)
                         $newItemProfit = ($detail->unitcost - $currentBuyingPrice) * $detail->quantity;
@@ -1142,7 +1143,7 @@ class FinanceController extends Controller
                     if ($product) {
                         // Refresh product to bypass cache
                         $product->refresh();
-                        $currentBuyingPrice = $product->buyingPrice;
+                        $currentBuyingPrice = $product->buying_price;
 
                         // Only update if buying price has changed
                         if (abs($detail->buying_price - $currentBuyingPrice) > 0.01) {
