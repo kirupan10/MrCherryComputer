@@ -20,10 +20,10 @@ class DatabaseSeeder extends Seeder
         // Seed only seeders relevant to the single tech-shop setup.
         $this->call([
             AdminUserSeeder::class,
+            ShopTypeSampleSeeder::class,
             CategorySeeder::class,
             UnitSeeder::class,
-            ShopTypeSampleSeeder::class,
-            SampleDataSeeder::class,
+            WarrantySeeder::class,
         ]);
 
     }

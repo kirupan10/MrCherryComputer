@@ -23,11 +23,6 @@ class UpdateCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'photo' => [
-                'image',
-                'file',
-                'max:1024'
-            ],
             'name' => [
                 'nullable',
                 'string',

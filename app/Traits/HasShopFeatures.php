@@ -116,17 +116,7 @@ trait HasShopFeatures
      */
     public function getShopTypeView(string $viewPath, ?string $fallback = null): string
     {
-        $shop = $this->getCurrentShop();
-        $shopType = $shop && $shop->shop_type ? shop_type_route_key($shop->shop_type->value) : 'tech';
-
-        // Try shop-type-specific view first
-        $shopTypeView = "shop-types.{$shopType}.{$viewPath}";
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        // Try tech fallback view
-        $techView = "shop-types.tech.{$viewPath}";
+        $techView = "{$viewPath}";
         if (view()->exists($techView)) {
             return $techView;
         }

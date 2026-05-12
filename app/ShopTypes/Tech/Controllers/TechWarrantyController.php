@@ -61,7 +61,7 @@ class TechWarrantyController extends Controller
 
         $claims = $query->latest('claim_date')->paginate(20);
 
-        return view('shop-types.tech.warranty.index', compact('claims'));
+        return view('warranty.index', compact('claims'));
     }
 
     /**
@@ -80,7 +80,7 @@ class TechWarrantyController extends Controller
                 ->findOrFail($request->serial_number_id);
         }
 
-        return view('shop-types.tech.warranty.create', compact('customers', 'selectedSerial'));
+        return view('warranty.create', compact('customers', 'selectedSerial'));
     }
 
     /**
@@ -149,7 +149,7 @@ class TechWarrantyController extends Controller
             'completedBy'
         ]);
 
-        return view('shop-types.tech.warranty.show', compact('warrantyClaim'));
+        return view('warranty.show', compact('warrantyClaim'));
     }
 
     /**
@@ -166,7 +166,7 @@ class TechWarrantyController extends Controller
 
         $customers = Customer::forCurrentShop()->orderBy('name')->get();
 
-        return view('shop-types.tech.warranty.edit', compact('warrantyClaim', 'customers'));
+        return view('warranty.edit', compact('warrantyClaim', 'customers'));
     }
 
     /**

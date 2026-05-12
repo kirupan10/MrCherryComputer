@@ -67,7 +67,7 @@ class TechSerialNumberController extends Controller
 
         $serialNumbers = $query->latest()->paginate(20);
 
-        return view('shop-types.tech.serial-numbers.index', compact('serialNumbers'));
+        return view('serial-numbers.index', compact('serialNumbers'));
     }
 
     /**
@@ -82,7 +82,7 @@ class TechSerialNumberController extends Controller
             ->latest()
             ->paginate(20);
 
-        return view('shop-types.tech.serial-numbers.by-product', compact('product', 'serialNumbers'));
+        return view('serial-numbers.by-product', compact('product', 'serialNumbers'));
     }
 
     /**
@@ -103,7 +103,7 @@ class TechSerialNumberController extends Controller
                 ->findOrFail($request->product_id);
         }
 
-        return view('shop-types.tech.serial-numbers.create', compact('products', 'selectedProduct'));
+        return view('serial-numbers.create', compact('products', 'selectedProduct'));
     }
 
     /**
@@ -223,7 +223,7 @@ class TechSerialNumberController extends Controller
 
         $serialNumber->load(['product', 'customer', 'order', 'warrantyClaims', 'repairJobs']);
 
-        return view('shop-types.tech.serial-numbers.show', compact('serialNumber'));
+        return view('serial-numbers.show', compact('serialNumber'));
     }
 
     /**
@@ -238,7 +238,7 @@ class TechSerialNumberController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('shop-types.tech.serial-numbers.edit', compact('serialNumber', 'products'));
+        return view('serial-numbers.edit', compact('serialNumber', 'products'));
     }
 
     /**

@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\View;
 use Symfony\Component\HttpFoundation\Response;
 
 class ShopTypeRouting
@@ -62,17 +61,6 @@ class ShopTypeRouting
         // Store shop type in session for easy access
         session(['active_shop_type' => $shopType]);
         session(['active_shop_id' => $shop->id]);
-
-        /** @var \Illuminate\View\FileViewFinder $finder */
-        $finder = View::getFinder();
-        $activeShopViewPath = resource_path('views/shop-types/' . $shopType);
-
-        if (is_dir($activeShopViewPath)) {
-            $paths = $finder->getPaths();
-            $paths = array_values(array_filter($paths, fn ($path) => $path !== $activeShopViewPath));
-            array_unshift($paths, $activeShopViewPath);
-            $finder->setPaths($paths);
-        }
 
         // Share with all views
         view()->share('activeShopType', $shopType);

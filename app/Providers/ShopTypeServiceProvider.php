@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
-use Illuminate\View\FileViewFinder;
 use App\Models\User;
 
 class ShopTypeServiceProvider extends ServiceProvider
@@ -37,7 +36,7 @@ class ShopTypeServiceProvider extends ServiceProvider
     {
         // Define shop types with their route configurations
         $shopTypeRoutes = [
-            'tech' => ['prefix' => 'tech', 'name' => 'tech.'],
+            'tech' => ['prefix' => '', 'name' => 'tech.'],
         ];
 
         foreach ($shopTypeRoutes as $type => $config) {
@@ -56,14 +55,7 @@ class ShopTypeServiceProvider extends ServiceProvider
      */
     protected function registerShopTypeViews(): void
     {
-        // Register all shop type namespaces
-        $shopTypes = ['tech'];
-
-        foreach ($shopTypes as $shopType) {
-            View::addNamespace($shopType, resource_path('views/shop-types/' . $shopType));
-        }
-
-        // Resolve view path from the authenticated user's active shop on every request.
+        // Share active shop context on every request.
         View::composer('*', function (): void {
             $this->applyActiveShopTypeViewPath();
         });
@@ -74,11 +66,6 @@ class ShopTypeServiceProvider extends ServiceProvider
      */
     protected function applyActiveShopTypeViewPath(): void
     {
-        $viewFinder = View::getFinder();
-        if (!$viewFinder instanceof FileViewFinder) {
-            return;
-        }
-
         /** @var User|null $user */
         $user = auth()->user();
         $activeShop = $user?->getActiveShop();
@@ -86,24 +73,6 @@ class ShopTypeServiceProvider extends ServiceProvider
         $shopType = $activeShop && $activeShop->shop_type
             ? shop_type_route_key($activeShop->shop_type->value)
             : 'tech';
-
-        $activeShopViewPath = resource_path('views/shop-types/' . $shopType);
-        if (!is_dir($activeShopViewPath)) {
-            $activeShopViewPath = resource_path('views/shop-types/tech');
-            $shopType = 'tech';
-        }
-
-        $paths = $viewFinder->getPaths();
-        $shopTypesBasePath = str_replace('\\\\', '/', resource_path('views/shop-types'));
-
-        // Remove existing shop-type paths so the active one is always first and deterministic.
-        $paths = array_values(array_filter($paths, function (string $path) use ($shopTypesBasePath): bool {
-            $normalizedPath = str_replace('\\\\', '/', $path);
-            return !str_starts_with($normalizedPath, $shopTypesBasePath . '/');
-        }));
-
-        array_unshift($paths, $activeShopViewPath);
-        $viewFinder->setPaths(array_values(array_unique($paths)));
 
         view()->share('activeShopType', $shopType);
         view()->share('activeShop', $activeShop);

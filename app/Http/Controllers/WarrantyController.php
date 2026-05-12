@@ -68,7 +68,7 @@ class WarrantyController extends Controller
             'shop_id' => $shopId,
         ]);
 
-        return redirect()->route('warranties.index')
+        return redirect()->to(shop_route('warranties.index'))
             ->with('success', 'Warranty created successfully.');
     }
 
@@ -118,7 +118,7 @@ class WarrantyController extends Controller
             'years' => $request->duration ? round($request->duration / 12, 1) : null,
         ]);
 
-        return redirect()->route('warranties.index')
+        return redirect()->to(shop_route('warranties.index'))
             ->with('success', 'Warranty updated successfully.');
     }
 
@@ -134,13 +134,13 @@ class WarrantyController extends Controller
 
         // Check if warranty is used by any products
         if ($warranty->products()->count() > 0) {
-            return redirect()->route('warranties.index')
+            return redirect()->to(shop_route('warranties.index'))
                 ->withErrors(['error' => 'Cannot delete warranty that is assigned to products.']);
         }
 
         $warranty->delete();
 
-        return redirect()->route('warranties.index')
+        return redirect()->to(shop_route('warranties.index'))
             ->with('success', 'Warranty deleted successfully.');
     }
 }

@@ -31,6 +31,16 @@ use Barryvdh\DomPDF\Facade\Pdf as PDF;
 */
 
 // Redirect generic /reports and /finance to shop-type-specific URLs (must be before other route groups)
+Route::get('/tech/{path?}', function (?string $path = null) {
+    $targetPath = $path ? '/' . ltrim($path, '/') : '/';
+
+    if (!request()->query()) {
+        return redirect($targetPath);
+    }
+
+    return redirect($targetPath . '?' . http_build_query(request()->query()));
+})->where('path', '.*');
+
 Route::middleware(['auth'])->group(function () {
     Route::get('/reports', function (Request $request) {
         /** @var User|null $user */
@@ -108,7 +118,9 @@ Route::middleware(['auth', 'check.suspended', 'ensure.shop.selected', 'shop.rout
     Route::patch('/profile', [ProfileController::class, 'userProfileUpdate'])->name('user.profile.update');
 
     // Admin Profile Routes
-    Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::get('/profile/edit', [ProfileController::class, 'edit'])
+        ->name('profile.edit')
+        ->withoutMiddleware('ensure.shop.selected');
     Route::get('/settings', [ProfileController::class, 'settings'])->name('profile.settings');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
@@ -137,26 +149,8 @@ Route::middleware(['auth', 'check.suspended', 'ensure.shop.selected', 'shop.rout
 
     // Permission Management (Shop Owner and Manager only, not employee)
     Route::middleware(['role:inventory_access', 'shop.tenant'])->group(function () {
-        Route::get('/permissions', function (Request $request) {
-            /** @var User|null $user */
-            $user = auth()->user();
-            $activeShop = $user ? $user->getActiveShop() : null;
-
-            if (!$activeShop || !$activeShop->shop_type) {
-                return app(PermissionController::class)->index($request);
-            }
-
-            $shopType = shop_type_route_key($activeShop->shop_type->value);
-
-            return redirect()->route('permissions.shop-type.index', ['shopType' => $shopType]);
-        })->name('permissions.index');
-        Route::get('/{shopType}/permissions', [PermissionController::class, 'index'])
-            ->whereIn('shopType', ['tech'])
-            ->name('permissions.shop-type.index');
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions.index');
         Route::put('/permissions', [PermissionController::class, 'update'])->name('permissions.update');
-        Route::put('/{shopType}/permissions', [PermissionController::class, 'update'])
-            ->whereIn('shopType', ['tech'])
-            ->name('permissions.shop-type.update');
     });
 
     // Finance Management (Excludes Employee role)
@@ -582,5 +576,6 @@ Route::middleware(['auth', 'check.suspended', 'ensure.shop.selected', 'shop.rout
     // Notifications
     Route::post('/notifications/mark-read', [\App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('notifications.mark-read');
     Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/audit-logs', [\App\Http\Controllers\NotificationController::class, 'auditLogs'])->name('notifications.audit-logs');
 
 require __DIR__.'/auth.php';

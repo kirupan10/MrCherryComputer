@@ -12,17 +12,6 @@ class BusinessTransactionController extends Controller
 {
     private function resolveView(string $page): string
     {
-        $shopType = active_shop_type() ?? 'tech';
-        $shopTypeView = "shop-types.{$shopType}.business-transactions.{$page}";
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        $techView = "shop-types.tech.business-transactions.{$page}";
-        if (view()->exists($techView)) {
-            return $techView;
-        }
-
         return "business-transactions.{$page}";
     }
 

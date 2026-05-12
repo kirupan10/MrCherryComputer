@@ -10,18 +10,6 @@ class LogController extends Controller
 {
     private function resolveView(string $page): string
     {
-        $shopType = active_shop_type() ?? 'tech';
-        $shopTypeView = "shop-types.{$shopType}.logs.{$page}";
-
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        $techView = "shop-types.tech.logs.{$page}";
-        if (view()->exists($techView)) {
-            return $techView;
-        }
-
         return "logs.{$page}";
     }
 

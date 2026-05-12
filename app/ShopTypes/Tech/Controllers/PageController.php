@@ -34,11 +34,6 @@ class PageController extends BaseShopTypePageController
         return $this->shopView('reports.warranty');
     }
 
-    public function reportsIndex(): View
-    {
-        return $this->shopView('reports.index');
-    }
-
     public function reportsRepairs(): View
     {
         return $this->shopView('reports.repairs');

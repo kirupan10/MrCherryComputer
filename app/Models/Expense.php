@@ -16,45 +16,7 @@ class Expense extends Model
     protected $casts = [
         'expense_date' => 'date',
         'details' => 'array',
-        'amount' => 'decimal:2',
     ];
-
-    // Status Constants
-    const STATUS_PENDING = 'pending';
-    const STATUS_APPROVED = 'approved';
-    const STATUS_REJECTED = 'rejected';
-
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function ($expense) {
-            // Auto Expense Number
-            if (empty($expense->expense_number)) {
-                $expense->expense_number = self::generateExpenseNumber();
-            }
-
-            // Default Status
-            if (empty($expense->status)) {
-                $expense->status = self::STATUS_PENDING;
-            }
-        });
-    }
-
-    /**
-     * Generate a unique expense number
-     */
-    public static function generateExpenseNumber()
-    {
-        $latest = self::latest('id')->first();
-        $number = $latest ? $latest->id + 1 : 1;
-
-        return 'EXP-' . date('Ymd') . '-' . str_pad($number, 5, '0', STR_PAD_LEFT);
-    }
-
-    // =========================
-    // Relationships
-    // =========================
 
     /**
      * Get the delivery record that generated this expense (if any)
@@ -65,74 +27,18 @@ class Expense extends Model
     }
 
     /**
-     * Get the user who approved this expense
+     * Get the user who created this expense
      */
-    public function approver(): BelongsTo
+    public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'approved_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
-    // Note: shop() and creator() are provided by BelongsToShop trait
-
-    // =========================
-    // Scopes
-    // =========================
-
-    public function scopeToday($query)
+    /**
+     * Get the shop that owns this expense
+     */
+    public function shop(): BelongsTo
     {
-        return $query->whereDate('expense_date', today());
-    }
-
-    public function scopeThisMonth($query)
-    {
-        return $query->whereMonth('expense_date', now()->month)
-                     ->whereYear('expense_date', now()->year);
-    }
-
-    public function scopeApproved($query)
-    {
-        return $query->where('status', self::STATUS_APPROVED);
-    }
-
-    public function scopePending($query)
-    {
-        return $query->where('status', self::STATUS_PENDING);
-    }
-
-    // =========================
-    // Accessors
-    // =========================
-
-    public function getFormattedAmountAttribute()
-    {
-        return number_format($this->amount, 2);
-    }
-
-    public function getReceiptUrlAttribute()
-    {
-        if ($this->receipt_image) {
-            return asset('storage/' . $this->receipt_image);
-        }
-
-        return null;
-    }
-
-    // =========================
-    // Helper Methods
-    // =========================
-
-    public function approve($userId)
-    {
-        return $this->update([
-            'status' => self::STATUS_APPROVED,
-            'approved_by' => $userId,
-        ]);
-    }
-
-    public function reject()
-    {
-        return $this->update([
-            'status' => self::STATUS_REJECTED,
-        ]);
+        return $this->belongsTo(Shop::class);
     }
 }

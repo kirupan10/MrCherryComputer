@@ -13,26 +13,48 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $email = 'admin@nexora.com';
-        $name = 'admin';
-        $username = 'admin';
-        $password = 'Aura@2026#';
-
-        // Create or update the admin user
-        $user = User::updateOrCreate(
-            ['email' => $email],
+        $users = [
             [
-                'name' => $name,
-                'username' => $username,
-                'password' => Hash::make($password),
+                'email' => 'admin@cherry.com',
+                'name' => 'admin',
+                'username' => 'admin',
+                'password' => 'Aura@2026#',
                 'role' => User::ROLE_ADMIN,
-            ]
-        );
+            ],
+            [
+                'email' => 'manager@cherry.com',
+                'name' => 'manager',
+                'username' => 'manager',
+                'password' => 'Aura@2026#',
+                'role' => User::ROLE_MANAGER,
+            ],
+            [
+                'email' => 'employee@cherry.com',
+                'name' => 'employee',
+                'username' => 'employee',
+                'password' => 'Aura@2026#',
+                'role' => User::ROLE_EMPLOYEE,
+            ],
+        ];
 
-        // Ensure password is set (in case updateOrCreate didn't update it)
-        if (!Hash::check($password, $user->password)) {
-            $user->password = Hash::make($password);
-            $user->save();
+        foreach ($users as $account) {
+            $plainPassword = $account['password'];
+
+            $user = User::updateOrCreate(
+                ['email' => $account['email']],
+                [
+                    'name' => $account['name'],
+                    'username' => $account['username'],
+                    'password' => Hash::make($plainPassword),
+                    'role' => $account['role'],
+                ]
+            );
+
+            // Keep seeded passwords consistent even when users already exist.
+            if (!Hash::check($plainPassword, $user->password)) {
+                $user->password = Hash::make($plainPassword);
+                $user->save();
+            }
         }
     }
 }

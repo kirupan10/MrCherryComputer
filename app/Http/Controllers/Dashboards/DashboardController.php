@@ -16,9 +16,10 @@ class DashboardController extends Controller
 {
     public function index()
     {
+        /** @var User|null $user */
         $user = auth()->user();
 
-        if (!$user) {
+        if (!$user instanceof User) {
             return redirect()->route('login');
         }
 
@@ -68,7 +69,7 @@ class DashboardController extends Controller
         return view('admin.dashboard', compact('stats', 'overdueShops'));
     }
 
-    private function shopDashboard($user)
+    private function shopDashboard(User $user)
     {
         $activeShop = $user->getActiveShop();
 
@@ -82,7 +83,7 @@ class DashboardController extends Controller
         }
 
         // Use KpiService per-shop stored-proc for shop-level order KPIs (fast)
-        $kpiService = new \App\Services\KpiService();
+        $kpiService = new KpiService();
         $shopKpis = $kpiService->getOrderKpisByShop($activeShop->id);
 
         $orders = $shopKpis->total_orders ?? 0;
@@ -107,7 +108,7 @@ class DashboardController extends Controller
         $totalSales = $shopKpis->total_amount ?? 0; // cents
 
         // Expenses (sum of all expenses for this shop)
-        $expenseKpis = (new \App\Services\KpiService())->getExpenseKpisByShop($activeShop->id);
+        $expenseKpis = (new KpiService())->getExpenseKpisByShop($activeShop->id);
         $totalExpenses = $expenseKpis->total_expenses ?? 0;
 
         // Profit/Loss
@@ -147,16 +148,10 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-        // Determine which view to load based on shop type
         $shopType = $activeShop->shop_type
             ? shop_type_route_key($activeShop->shop_type->value)
             : 'tech';
-        $viewName = "shop-types.{$shopType}.dashboard";
-
-        // Check if shop-type-specific view exists, fallback to tech
-        if (!view()->exists($viewName)) {
-            $viewName = 'shop-types.tech.dashboard';
-        }
+        $viewName = 'dashboard';
 
         return view($viewName, [
             'userType' => 'shop_user',
@@ -182,19 +177,14 @@ class DashboardController extends Controller
 
     private function basicDashboard()
     {
+        /** @var User|null $user */
         $user = auth()->user();
-        $activeShop = $user ? $user->getActiveShop() : null;
+        $activeShop = $user?->getActiveShop();
 
-        // Determine shop type for view routing
         $shopType = $activeShop && $activeShop->shop_type
             ? shop_type_route_key($activeShop->shop_type->value)
             : 'tech';
-        $viewName = "shop-types.{$shopType}.dashboard";
-
-        // Check if shop-type-specific view exists, fallback to tech
-        if (!view()->exists($viewName)) {
-            $viewName = 'shop-types.tech.dashboard';
-        }
+        $viewName = 'dashboard';
 
         return view($viewName, [
             'userType' => 'basic',

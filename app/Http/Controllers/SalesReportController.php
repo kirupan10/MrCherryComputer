@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Customer;
@@ -19,14 +20,24 @@ class SalesReportController extends Controller
 {
     private const ACTIVITY_LOG_PER_PAGE = 2;
 
-    private function reportView(string $view): string
+    private function currentUser(): User
     {
-        $shopType = function_exists('active_shop_type') ? active_shop_type() : 'tech';
-        $shopView = "shop-types.{$shopType}.reports.{$view}";
+        $user = auth()->user();
+        if (!$user instanceof User) {
+            abort(403, 'You must be authenticated.');
+        }
 
-        return view()->exists($shopView)
-            ? $shopView
-            : "reports.{$view}";
+        return $user;
+    }
+
+    private function activeShop()
+    {
+        return $this->currentUser()->getActiveShop();
+    }
+
+    private function activeShopId(): ?int
+    {
+        return $this->activeShop()?->id;
     }
 
     public function index()
@@ -49,7 +60,7 @@ class SalesReportController extends Controller
             ->limit(10)
             ->get();
 
-        return view($this->reportView('sales.index'), compact(
+        return view('reports.sales.index', compact(
             'dailySales',
             'weeklySales',
             'monthlySales',
@@ -74,7 +85,7 @@ class SalesReportController extends Controller
         $activitiesData = $this->getDailyActivities($selectedDate);
         $dailySummary = $this->getDailyOperationsSummary($selectedDate);
 
-        return view($this->reportView('sales.daily'), compact('salesData', 'hourlyData', 'salesDetailsData', 'paymentMethodData', 'selectedDate', 'expensesData', 'purchasesData', 'transactionsData', 'deliveriesData', 'activitiesData', 'dailySummary'));
+        return view('reports.sales.daily', compact('salesData', 'hourlyData', 'salesDetailsData', 'paymentMethodData', 'selectedDate', 'expensesData', 'purchasesData', 'transactionsData', 'deliveriesData', 'activitiesData', 'dailySummary'));
     }
 
     public function weekly(Request $request)
@@ -89,7 +100,7 @@ class SalesReportController extends Controller
         $deliveriesData = $this->getWeeklyDeliveries($selectedWeek);
         $activitiesData = $this->getWeeklyActivities($selectedWeek);
 
-        return view($this->reportView('sales.weekly'), compact(
+        return view('reports.sales.weekly', compact(
             'salesData',
             'dailyData',
             'selectedWeek',
@@ -114,7 +125,7 @@ class SalesReportController extends Controller
     $deliveriesData = $this->getMonthlyDeliveries($selectedMonth);
     $activitiesData = $this->getMonthlyActivities($selectedMonth);
 
-    return view($this->reportView('sales.monthly'), compact('salesData', 'dailyData', 'weeklyData', 'selectedMonth', 'expensesData', 'transactionsData', 'transactionsSummary', 'deliveriesData', 'activitiesData'));
+    return view('reports.sales.monthly', compact('salesData', 'dailyData', 'weeklyData', 'selectedMonth', 'expensesData', 'transactionsData', 'transactionsSummary', 'deliveriesData', 'activitiesData'));
     }
 
     public function yearly(Request $request)
@@ -141,7 +152,7 @@ class SalesReportController extends Controller
         // Calculate comprehensive financial metrics
         $financialMetrics = $this->calculateYearlyFinancialMetrics($selectedYearDate, $salesData, $expensesGrouped, $totalDeliveryCost);
 
-        return view($this->reportView('sales.yearly'), compact(
+        return view('reports.sales.yearly', compact(
             'salesData',
             'monthlyData',
             'quarterlyData',
@@ -161,7 +172,7 @@ class SalesReportController extends Controller
     public function downloadDaily(Request $request)
     {
         // Authorization check
-        if (!auth()->user()->canAccessReports()) {
+        if (!$this->currentUser()->canAccessReports()) {
             abort(403, 'You do not have permission to download reports.');
         }
 
@@ -204,12 +215,12 @@ class SalesReportController extends Controller
         $deliveriesData = $sections['includeDeliveries'] ? $this->getAllDailyDeliveries($selectedDate->copy()) : collect();
         $activitiesData = $sections['includeActivities'] ? $this->getAllDailyActivities($selectedDate->copy()) : collect();
 
-        $shop = auth()->user()->getActiveShop() ?? auth()->user()->shop;
+        $shop = $this->activeShop() ?? $this->currentUser()->shop;
 
-        $pdf = Pdf::loadView($this->reportView('sales.daily-pdf'), [
+        $pdf = Pdf::loadView('reports.sales.daily-pdf', [
             'selectedDate' => $selectedDate,
             'shop' => $shop,
-            'generatedBy' => auth()->user()->name,
+            'generatedBy' => $this->currentUser()->name,
             'generatedAt' => now(),
             'sections' => $sections,
             'salesData' => $salesData,
@@ -228,7 +239,7 @@ class SalesReportController extends Controller
 
     public function downloadWeekly(Request $request)
     {
-        if (!auth()->user()->canAccessReports()) {
+        if (!$this->currentUser()->canAccessReports()) {
             abort(403, 'You do not have permission to download reports.');
         }
 
@@ -267,12 +278,12 @@ class SalesReportController extends Controller
         $deliveriesData = $sections['includeDeliveries'] ? $this->getAllWeeklyDeliveries($selectedWeek->copy()) : collect();
         $activitiesData = $sections['includeActivities'] ? $this->getAllWeeklyActivities($selectedWeek->copy()) : collect();
 
-        $shop = auth()->user()->getActiveShop() ?? auth()->user()->shop;
+        $shop = $this->activeShop() ?? $this->currentUser()->shop;
 
-        $pdf = Pdf::loadView($this->reportView('sales.weekly-pdf'), [
+        $pdf = Pdf::loadView('reports.sales.weekly-pdf', [
             'selectedWeek' => $selectedWeek,
             'shop' => $shop,
-            'generatedBy' => auth()->user()->name,
+            'generatedBy' => $this->currentUser()->name,
             'generatedAt' => now(),
             'sections' => $sections,
             'salesData' => $salesData,
@@ -289,7 +300,7 @@ class SalesReportController extends Controller
 
     public function downloadMonthly(Request $request)
     {
-        if (!auth()->user()->canAccessReports()) {
+        if (!$this->currentUser()->canAccessReports()) {
             abort(403, 'You do not have permission to download reports.');
         }
 
@@ -333,12 +344,12 @@ class SalesReportController extends Controller
         $deliveriesData = $sections['includeDeliveries'] ? $this->getAllMonthlyDeliveries($selectedMonth->copy()) : collect();
         $activitiesData = $sections['includeActivities'] ? $this->getAllMonthlyActivities($selectedMonth->copy()) : collect();
 
-        $shop = auth()->user()->getActiveShop() ?? auth()->user()->shop;
+        $shop = $this->activeShop() ?? $this->currentUser()->shop;
 
-        $pdf = Pdf::loadView($this->reportView('sales.monthly-pdf'), [
+        $pdf = Pdf::loadView('reports.sales.monthly-pdf', [
             'selectedMonth' => $selectedMonth,
             'shop' => $shop,
-            'generatedBy' => auth()->user()->name,
+            'generatedBy' => $this->currentUser()->name,
             'generatedAt' => now(),
             'sections' => $sections,
             'salesData' => $salesData,
@@ -669,7 +680,7 @@ class SalesReportController extends Controller
 
     private function getDailyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
 
         return AuditLog::where('shop_id', $shopId)
             ->whereDate('created_at', $date)
@@ -691,7 +702,7 @@ class SalesReportController extends Controller
 
     private function getAllDailyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
 
         return AuditLog::where('shop_id', $shopId)
             ->whereDate('created_at', $date)
@@ -808,7 +819,7 @@ class SalesReportController extends Controller
 
     private function getWeeklyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
         $startOfWeek = $date->copy()->startOfWeek();
         $endOfWeek = $date->copy()->endOfWeek();
 
@@ -832,7 +843,7 @@ class SalesReportController extends Controller
 
     private function getAllWeeklyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
         $startOfWeek = $date->copy()->startOfWeek();
         $endOfWeek = $date->copy()->endOfWeek();
 
@@ -951,7 +962,7 @@ class SalesReportController extends Controller
 
     private function getMonthlyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
         $startOfMonth = $date->copy()->startOfMonth();
         $endOfMonth = $date->copy()->endOfMonth();
 
@@ -975,7 +986,7 @@ class SalesReportController extends Controller
 
     private function getAllMonthlyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
         $startOfMonth = $date->copy()->startOfMonth();
         $endOfMonth = $date->copy()->endOfMonth();
 
@@ -1130,7 +1141,7 @@ class SalesReportController extends Controller
 
     private function getYearlyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
         $startOfYear = $date->copy()->startOfYear();
         $endOfYear = $date->copy()->endOfYear();
 
@@ -1154,7 +1165,7 @@ class SalesReportController extends Controller
 
     private function getAllYearlyActivities($date)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
         $startOfYear = $date->copy()->startOfYear();
         $endOfYear = $date->copy()->endOfYear();
 
@@ -1276,7 +1287,7 @@ class SalesReportController extends Controller
      *
      * Use the same per-line profit logic as the finance flows:
      * (selling unit price - buying price) * quantity.
-     * 
+     *
      * Note: This automatically handles losses where selling_price < buying_price.
      * - When selling_price > buying_price: contributes POSITIVE to gross profit
      * - When selling_price < buying_price: contributes NEGATIVE to gross profit (loss)
@@ -1284,7 +1295,7 @@ class SalesReportController extends Controller
      */
     private function computeGrossProfitForRange($startDateTime, $endDateTime)
     {
-        $shopId = auth()->user()?->getActiveShop()?->id;
+        $shopId = $this->activeShopId();
 
         $query = DB::table('order_details')
             ->join('orders', 'order_details.order_id', '=', 'orders.id')
@@ -1305,7 +1316,7 @@ class SalesReportController extends Controller
      */
     private function calculateYearlyFinancialMetrics($yearDate, $salesData, $expensesData, $totalDeliveryCost)
     {
-        $shopId = auth()->user()->getActiveShop()->id ?? null;
+        $shopId = $this->activeShopId();
         $startOfYear = $yearDate->copy()->startOfYear();
         $endOfYear = $yearDate->copy()->endOfYear();
 
@@ -1432,11 +1443,11 @@ class SalesReportController extends Controller
     public function reportsIndex()
     {
         // Authorization check - staff cannot access reports
-        if (!auth()->user()->canAccessReports()) {
+        if (!$this->currentUser()->canAccessReports()) {
             abort(403, 'You do not have permission to access Reports.');
         }
 
-        return view($this->reportView('index'));
+        return view('reports.index');
     }
 
     /**
@@ -1445,11 +1456,11 @@ class SalesReportController extends Controller
     public function transactions(Request $request)
     {
         // Authorization check - staff cannot access transactions
-        if (!auth()->user()->canAccessTransactions()) {
+        if (!$this->currentUser()->canAccessTransactions()) {
             abort(403, 'You do not have permission to access Transactions.');
         }
 
-        $activeShop = auth()->user()->getActiveShop();
+        $activeShop = $this->activeShop();
 
         if (!$activeShop) {
             return redirect()->route('dashboard')->with('error', 'Please select an active shop first.');
@@ -1485,7 +1496,7 @@ class SalesReportController extends Controller
             ];
         });
 
-        return view($this->reportView('transactions'), compact(
+        return view('reports.transactions', compact(
             'transactions',
             'selectedMonth',
             'totalAmount',
@@ -1501,11 +1512,11 @@ class SalesReportController extends Controller
     public function downloadTransactions(Request $request)
     {
         // Authorization check - staff cannot download transactions
-        if (!auth()->user()->canAccessTransactions()) {
+        if (!$this->currentUser()->canAccessTransactions()) {
             abort(403, 'You do not have permission to download Transactions.');
         }
 
-        $activeShop = auth()->user()->getActiveShop();
+        $activeShop = $this->activeShop();
 
         if (!$activeShop) {
             return redirect()->route('dashboard')->with('error', 'Please select an active shop first.');
@@ -1579,7 +1590,7 @@ class SalesReportController extends Controller
      */
     public function inventory(Request $request)
     {
-        $activeShop = auth()->user()->getActiveShop();
+        $activeShop = $this->activeShop();
 
         if (!$activeShop) {
             return redirect()->route('dashboard')->with('error', 'Please select an active shop first.');
@@ -1667,6 +1678,8 @@ class SalesReportController extends Controller
         $outOfStockProducts = Product::where('shop_id', $activeShop->id)
             ->where('quantity', '<=', 0)
             ->count();
+        $inStockProducts = Product::where('shop_id', $activeShop->id)
+            ->where('quantity', '>', 10)->count();
 
         // Get categories for filter
         $categories = DB::table('categories')
@@ -1674,16 +1687,97 @@ class SalesReportController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view($this->reportView('inventory'), compact(
+        // Most selling products (all time, by quantity sold)
+        $mostSellingProducts = DB::table('order_details')
+            ->join('orders', 'order_details.order_id', '=', 'orders.id')
+            ->join('products', 'order_details.product_id', '=', 'products.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->where('orders.shop_id', $activeShop->id)
+            ->select(
+                'products.id',
+                'products.name',
+                'products.code',
+                'products.quantity as current_stock',
+                'categories.name as category_name',
+                DB::raw('SUM(order_details.quantity) as total_sold'),
+                DB::raw('SUM(order_details.total) as total_revenue')
+            )
+            ->groupBy('products.id', 'products.name', 'products.code', 'products.quantity', 'categories.name')
+            ->orderBy('total_sold', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Most selling products this month
+        $thisMonthStart = Carbon::now()->startOfMonth();
+        $mostSellingThisMonth = DB::table('order_details')
+            ->join('orders', 'order_details.order_id', '=', 'orders.id')
+            ->join('products', 'order_details.product_id', '=', 'products.id')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->where('orders.shop_id', $activeShop->id)
+            ->where('orders.order_date', '>=', $thisMonthStart)
+            ->select(
+                'products.id',
+                'products.name',
+                'products.code',
+                'products.quantity as current_stock',
+                'categories.name as category_name',
+                DB::raw('SUM(order_details.quantity) as total_sold'),
+                DB::raw('SUM(order_details.total) as total_revenue')
+            )
+            ->groupBy('products.id', 'products.name', 'products.code', 'products.quantity', 'categories.name')
+            ->orderBy('total_sold', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Dead stock: products with quantity > 0 but no sales in the last 90 days
+        $ninetyDaysAgo = Carbon::now()->subDays(90);
+        $deadStockProducts = Product::where('shop_id', $activeShop->id)
+            ->where('quantity', '>', 0)
+            ->whereNotIn('id', function ($q) use ($activeShop, $ninetyDaysAgo) {
+                $q->select('order_details.product_id')
+                    ->from('order_details')
+                    ->join('orders', 'order_details.order_id', '=', 'orders.id')
+                    ->where('orders.shop_id', $activeShop->id)
+                    ->where('orders.order_date', '>=', $ninetyDaysAgo);
+            })
+            ->with('category')
+            ->orderBy('quantity', 'desc')
+            ->limit(10)
+            ->get();
+
+        // Stock value by category
+        $stockByCategory = DB::table('products')
+            ->leftJoin('categories', 'products.category_id', '=', 'categories.id')
+            ->where('products.shop_id', $activeShop->id)
+            ->where('products.quantity', '>', 0)
+            ->select(
+                DB::raw('COALESCE(categories.name, "Uncategorized") as category_name'),
+                DB::raw('COUNT(products.id) as product_count'),
+                DB::raw('SUM(products.quantity) as total_units'),
+                DB::raw('SUM(products.quantity * COALESCE(products.buying_price, 0)) as stock_value')
+            )
+            ->groupBy('categories.name')
+            ->orderBy('stock_value', 'desc')
+            ->get();
+
+        $currentMonthName = Carbon::now()->format('F Y');
+
+        return view('reports.inventory', compact(
             'products',
             'totalProducts',
             'totalStockValue',
             'lowStockProducts',
             'outOfStockProducts',
+            'inStockProducts',
             'categories',
             'category',
             'search',
-            'stockFilter'
+            'stockFilter',
+            'mostSellingProducts',
+            'mostSellingThisMonth',
+            'deadStockProducts',
+            'stockByCategory',
+            'currentMonthName'
         ));
     }
 
@@ -1692,7 +1786,7 @@ class SalesReportController extends Controller
      */
     public function downloadInventory(Request $request)
     {
-        $activeShop = auth()->user()->getActiveShop();
+        $activeShop = $this->activeShop();
 
         if (!$activeShop) {
             return redirect()->route('dashboard')->with('error', 'Please select an active shop first.');
@@ -1791,3 +1885,4 @@ class SalesReportController extends Controller
         return Response::stream($callback, 200, $headers);
     }
 }
+

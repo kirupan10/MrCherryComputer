@@ -11,6 +11,6 @@ abstract class BaseShopTypePageController extends Controller
 
     protected function shopView(string $view, array $data = []): View
     {
-        return view('shop-types.' . static::SHOP_TYPE . '.' . $view, $data);
+        return view($view, $data);
     }
 }

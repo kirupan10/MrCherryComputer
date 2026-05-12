@@ -24,7 +24,6 @@ class StoreCustomerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'photo' => 'image|file|max:1024',
             'name' => 'required|string|max:50',
             'email' => 'nullable|email|max:50',
             'phone' => 'required|string|max:25',

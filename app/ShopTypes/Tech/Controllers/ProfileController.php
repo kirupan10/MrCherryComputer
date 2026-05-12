@@ -15,7 +15,7 @@ class ProfileController extends \App\Http\Controllers\ProfileController
 			return redirect()->to(shop_route('profile.settings'));
 		}
 
-		return view('shop-types.tech.profile.features', [
+		return view('profile.features', [
 			'user' => $user,
 			'shop' => $shop,
 			'shopSettings' => $shop->shop_settings ?? [],

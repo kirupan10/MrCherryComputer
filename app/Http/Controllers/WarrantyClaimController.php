@@ -6,31 +6,36 @@ use App\Models\WarrantyClaim;
 use App\Models\Product;
 use App\Models\Customer;
 use App\Models\Order;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
 
 class WarrantyClaimController extends Controller
 {
-    private function resolveWarrantyView(string $page): string
+    private function currentUser(): User
     {
         $user = auth()->user();
-        $shop = $user ? $user->getActiveShop() : null;
-        $shopType = $shop && $shop->shop_type ? shop_type_route_key($shop->shop_type->value) : null;
-
-        if ($shopType) {
-            $shopView = "shop-types.{$shopType}.warranty.{$page}";
-            if (view()->exists($shopView)) {
-                return $shopView;
-            }
+        if (!$user instanceof User) {
+            abort(403, 'You must be authenticated.');
         }
 
-        return "warranty-claims.{$page}";
+        return $user;
+    }
+
+    protected function indexRoute(): string
+    {
+        return 'warranty-claims.index';
+    }
+
+    private function resolveWarrantyView(string $page): string
+    {
+        return "warranty.{$page}";
     }
 
     public function index(Request $request)
     {
-        $user = auth()->user();
+        $user = $this->currentUser();
         $shop = $user->getActiveShop();
 
         if (!$shop && !$user->isAdmin()) {
@@ -81,7 +86,7 @@ class WarrantyClaimController extends Controller
         }
 
         $perPage = $request->get('per_page', 20);
-        $warrantyClaims = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
+        $warrantyClaims = $query->orderBy('created_at', 'desc')->paginate($perPage)->appends($request->query());
 
         // Get statistics (ShopScope automatically filters)
         $stats = [
@@ -96,12 +101,14 @@ class WarrantyClaimController extends Controller
 
     public function create()
     {
+        $user = $this->currentUser();
+
         // Load ALL products including out-of-stock items for warranty claims
         // Warranty claims can be filed for products regardless of current stock status
-        $products = Product::where('shop_id', Auth::user()->shop_id)
+        $products = Product::where('shop_id', $user->shop_id)
             ->orderBy('name')
             ->get();
-        $customers = Customer::where('shop_id', Auth::user()->shop_id)
+        $customers = Customer::where('shop_id', $user->shop_id)
             ->orderBy('name')
             ->get();
         return view($this->resolveWarrantyView('create'), compact('products', 'customers'));
@@ -126,7 +133,7 @@ class WarrantyClaimController extends Controller
             'resolution_notes' => 'nullable|string',
         ]);
 
-        $user = auth()->user();
+        $user = $this->currentUser();
         $shop = $user->getActiveShop() ?: \App\Models\Shop::first();
 
         $validated['shop_id'] = $shop?->id;
@@ -142,7 +149,7 @@ class WarrantyClaimController extends Controller
 
         WarrantyClaim::create($validated);
 
-        return redirect()->route('warranty-claims.index')
+        return redirect()->route($this->indexRoute())
             ->with('success', 'Warranty claim created successfully.');
     }
 
@@ -155,10 +162,12 @@ class WarrantyClaimController extends Controller
 
     public function edit(WarrantyClaim $warrantyClaim)
     {
-        $products = Product::where('shop_id', Auth::user()->shop_id)
+        $user = $this->currentUser();
+
+        $products = Product::where('shop_id', $user->shop_id)
             ->orderBy('name')
             ->get();
-        $customers = Customer::where('shop_id', Auth::user()->shop_id)
+        $customers = Customer::where('shop_id', $user->shop_id)
             ->orderBy('name')
             ->get();
         return view($this->resolveWarrantyView('edit'), compact('warrantyClaim', 'products', 'customers'));
@@ -203,7 +212,7 @@ class WarrantyClaimController extends Controller
 
         $warrantyClaim->update($validated);
 
-        return redirect()->route('warranty-claims.index')
+        return redirect()->route($this->indexRoute())
             ->with('success', 'Warranty claim updated successfully.');
     }
 
@@ -221,7 +230,7 @@ class WarrantyClaimController extends Controller
 
         $warrantyClaim->delete();
 
-        return redirect()->route('warranty-claims.index')
+        return redirect()->route($this->indexRoute())
             ->with('success', 'Warranty claim deleted successfully.');
     }
 
@@ -229,7 +238,7 @@ class WarrantyClaimController extends Controller
     public function searchProducts(Request $request)
     {
         $search = $request->get('q', '');
-        $user = auth()->user();
+        $user = $this->currentUser();
         $shop = $user->getActiveShop() ?: \App\Models\Shop::first();
 
         $products = Product::where('shop_id', $shop?->id)
@@ -245,7 +254,7 @@ class WarrantyClaimController extends Controller
     {
         $search = $request->get('q', '');
         $phoneSearch = preg_replace('/[\s\-\(\)]+/', '', $search);
-        $user = auth()->user();
+        $user = $this->currentUser();
         $shop = $user->getActiveShop() ?: \App\Models\Shop::first();
 
         $customers = Customer::where('shop_id', $shop?->id)

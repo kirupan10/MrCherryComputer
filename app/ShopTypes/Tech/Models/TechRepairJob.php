@@ -218,12 +218,12 @@ class TechRepairJob extends Model
             return self::$resolvedTable;
         }
 
-        if (Schema::hasTable('repair_jobs')) {
-            return self::$resolvedTable = 'repair_jobs';
+        if (Schema::hasTable('tech_repair_jobs')) {
+            return self::$resolvedTable = 'tech_repair_jobs';
         }
 
-        if (Schema::hasTable('jobs')) {
-            return self::$resolvedTable = 'jobs';
+        if (Schema::hasTable('repair_jobs')) {
+            return self::$resolvedTable = 'repair_jobs';
         }
 
         return self::$resolvedTable = parent::getTable();

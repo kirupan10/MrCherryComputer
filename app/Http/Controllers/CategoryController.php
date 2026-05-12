@@ -10,21 +10,13 @@ class CategoryController extends Controller
 {
     private function resolveCategoryView(string $page): string
     {
-        $shopType = active_shop_type();
-        $shopType = $shopType ? shop_type_route_key($shopType) : 'tech';
-        $shopTypeView = "shop-types.{$shopType}.categories.{$page}";
-
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
         return "categories.{$page}";
     }
 
     public function index()
     {
         // Eager-load creator relation to avoid N+1
-        $categories = Category::with('creator:id,name')->latest()->get();
+        $categories = Category::with(['creator:id,name', 'products'])->latest()->get();
 
         return view($this->resolveCategoryView('index'), [
             'categories' => $categories,
@@ -41,7 +33,7 @@ class CategoryController extends Controller
         Category::create($request->validated());
 
         return redirect()
-            ->route('categories.index')
+            ->to(shop_route('categories.index'))
             ->with('success', 'Category has been created!');
     }
 
@@ -64,7 +56,7 @@ class CategoryController extends Controller
         $category->update($request->all());
 
         return redirect()
-            ->route('categories.index')
+            ->to(shop_route('categories.index'))
             ->with('success', 'Category has been updated!');
     }
 
@@ -73,7 +65,7 @@ class CategoryController extends Controller
         $category->delete();
 
         return redirect()
-            ->route('categories.index')
+            ->to(shop_route('categories.index'))
             ->with('success', 'Category has been deleted!');
     }
 }

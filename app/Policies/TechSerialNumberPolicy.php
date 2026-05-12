@@ -7,46 +7,36 @@ use App\ShopTypes\Tech\Models\TechSerialNumber;
 
 class TechSerialNumberPolicy
 {
-    /**
-     * Determine whether the user can view any tech serial numbers.
-     */
+    private function userOwnsShop(User $user, TechSerialNumber $techSerialNumber): bool
+    {
+        if ($user->isAdmin()) return true;
+        $shop = $user->getActiveShop();
+        if ($shop && (int) $techSerialNumber->shop_id === (int) $shop->id) return true;
+        return $user->ownedShops()->where('shops.id', $techSerialNumber->shop_id)->exists();
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->can('view_products');
+        return $user->hasInventoryAccess();
     }
 
-    /**
-     * Determine whether the user can view the tech serial number.
-     */
     public function view(User $user, TechSerialNumber $techSerialNumber): bool
     {
-        return $user->can('view_products') &&
-               $techSerialNumber->shop_id === $user->currentShop->id;
+        return $user->hasInventoryAccess() && $this->userOwnsShop($user, $techSerialNumber);
     }
 
-    /**
-     * Determine whether the user can create tech serial numbers.
-     */
     public function create(User $user): bool
     {
-        return $user->can('create_products');
+        return !$user->isEmployee();
     }
 
-    /**
-     * Determine whether the user can update the tech serial number.
-     */
     public function update(User $user, TechSerialNumber $techSerialNumber): bool
     {
-        return $user->can('edit_products') &&
-               $techSerialNumber->shop_id === $user->currentShop->id;
+        return !$user->isEmployee() && $this->userOwnsShop($user, $techSerialNumber);
     }
 
-    /**
-     * Determine whether the user can delete the tech serial number.
-     */
     public function delete(User $user, TechSerialNumber $techSerialNumber): bool
     {
-        return $user->can('delete_products') &&
-               $techSerialNumber->shop_id === $user->currentShop->id;
+        return !$user->isEmployee() && $this->userOwnsShop($user, $techSerialNumber);
     }
 }

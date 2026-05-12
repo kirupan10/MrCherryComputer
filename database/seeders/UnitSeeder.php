@@ -20,24 +20,9 @@ class UnitSeeder extends Seeder
                 'short_code' => 'pc'
             ],
             [
-                'name' => 'Centimeters',
-                'slug' => 'centimeters',
-                'short_code' => 'cm'
-            ],
-            [
                 'name' => 'Meters',
                 'slug' => 'meters',
                 'short_code' => 'm'
-            ],
-            [
-                'name' => 'Kilogram',
-                'slug' => 'kilogram',
-                'short_code' => 'kg'
-            ],
-            [
-                'name' => 'Litre',
-                'slug' => 'litre',
-                'short_code' => 'L'
             ],
         ]);
 

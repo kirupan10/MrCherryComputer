@@ -6,11 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Customer\StoreCustomerRequest;
 use App\Http\Requests\Customer\UpdateCustomerRequest;
 use App\Models\Customer;
+use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class BaseCustomerController extends Controller
 {
     public function index()
     {
+        /** @var User|null $user */
         $user = auth()->user();
         $activeShop = $user ? $user->getActiveShop() : null;
         $shopId = $activeShop ? $activeShop->id : null;
@@ -31,14 +34,7 @@ class BaseCustomerController extends Controller
         $newThisMonth = Customer::whereDate('created_at', '>=', now()->startOfMonth())
             ->count();
 
-        $shopType = $activeShop && $activeShop->shop_type
-            ? shop_type_route_key($activeShop->shop_type->value)
-            : 'tech';
-        $viewName = "shop-types.{$shopType}.customers.index";
-
-        if (!view()->exists($viewName)) {
-            $viewName = 'shop-types.tech.customers.index';
-        }
+        $viewName = 'customers.index';
 
         return view($viewName, [
             'customers' => $customers,
@@ -50,16 +46,7 @@ class BaseCustomerController extends Controller
 
     public function create()
     {
-        $user = auth()->user();
-        $activeShop = $user ? $user->getActiveShop() : null;
-        $shopType = $activeShop && $activeShop->shop_type
-            ? shop_type_route_key($activeShop->shop_type->value)
-            : 'tech';
-        $viewName = "shop-types.{$shopType}.customers.create";
-
-        if (!view()->exists($viewName)) {
-            $viewName = 'shop-types.tech.customers.create';
-        }
+        $viewName = 'customers.create';
 
         return view($viewName);
     }
@@ -73,16 +60,6 @@ class BaseCustomerController extends Controller
             }
 
             $customer = Customer::create($data);
-
-            if ($request->hasFile('photo')) {
-                $file = $request->file('photo');
-                $filename = hexdec(uniqid()) . '.' . $file->getClientOriginalExtension();
-
-                $file->storeAs('customers/', $filename, 'public');
-                $customer->update([
-                    'photo' => $filename,
-                ]);
-            }
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
@@ -103,8 +80,8 @@ class BaseCustomerController extends Controller
                 ->to(shop_route('customers.index'))
                 ->with('success', 'New customer has been created!');
         } catch (\Exception $e) {
-            \Log::error('Customer creation failed: ' . $e->getMessage(), [
-                'data' => $request->except(['photo']),
+            Log::error('Customer creation failed: ' . $e->getMessage(), [
+                'data' => $request->all(),
                 'user_id' => auth()->id(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -126,16 +103,7 @@ class BaseCustomerController extends Controller
     {
         $customer->loadMissing(['orders.details']);
 
-        $user = auth()->user();
-        $activeShop = $user ? $user->getActiveShop() : null;
-        $shopType = $activeShop && $activeShop->shop_type
-            ? shop_type_route_key($activeShop->shop_type->value)
-            : 'tech';
-        $viewName = "shop-types.{$shopType}.customers.show";
-
-        if (!view()->exists($viewName)) {
-            $viewName = 'shop-types.tech.customers.show';
-        }
+        $viewName = 'customers.show';
 
         return view($viewName, [
             'customer' => $customer,
@@ -150,16 +118,7 @@ class BaseCustomerController extends Controller
                 ->with('error', 'Walk-In Customer cannot be edited.');
         }
 
-        $user = auth()->user();
-        $activeShop = $user ? $user->getActiveShop() : null;
-        $shopType = $activeShop && $activeShop->shop_type
-            ? shop_type_route_key($activeShop->shop_type->value)
-            : 'tech';
-        $viewName = "shop-types.{$shopType}.customers.edit";
-
-        if (!view()->exists($viewName)) {
-            $viewName = 'shop-types.tech.customers.edit';
-        }
+        $viewName = 'customers.edit';
 
         return view($viewName, [
             'customer' => $customer,
@@ -174,26 +133,11 @@ class BaseCustomerController extends Controller
                 ->with('error', 'Walk-In Customer cannot be modified.');
         }
 
-        $data = $request->except('photo');
+        $data = $request->all();
         if (!empty($data['phone'])) {
             $data['phone'] = preg_replace('/\s+/', '', $data['phone']);
         }
         $customer->update($data);
-
-        if ($request->hasFile('photo')) {
-            if ($customer->photo) {
-                unlink(public_path('storage/customers/') . $customer->photo);
-            }
-
-            $file = $request->file('photo');
-            $fileName = hexdec(uniqid()) . '.' . $file->getClientOriginalExtension();
-
-            $file->storeAs('customers/', $fileName, 'public');
-
-            $customer->update([
-                'photo' => $fileName,
-            ]);
-        }
 
         return redirect()
             ->to(shop_route('customers.index'))
@@ -210,7 +154,7 @@ class BaseCustomerController extends Controller
         }
 
         try {
-            $customer->update($request->except('photo'));
+            $customer->update($request->all());
 
             return response()->json([
                 'success' => true,
@@ -227,7 +171,7 @@ class BaseCustomerController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            \Log::error('Failed to update customer', [
+            Log::error('Failed to update customer', [
                 'customer_id' => $customer->id,
                 'error' => $e->getMessage(),
             ]);

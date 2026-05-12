@@ -21,10 +21,10 @@ class ShopTypeSampleSeeder extends Seeder
         $shopData = [
             [
                 'type' => ShopType::TECH_SHOP,
-                'shop_name' => 'Cherry Computer Shop',
-                'owner' => ['name' => 'James Tech', 'username' => 'tech_owner', 'email' => 'tech@nexora.com'],
-                'manager' => ['name' => 'Lisa Manager', 'username' => 'tech_manager', 'email' => 'tech.mgr@nexora.com'],
-                'employee' => ['name' => 'Tom Staff', 'username' => 'tech_staff', 'email' => 'tech.staff@nexora.com'],
+                'shop_name' => 'MR Cherry Computers',
+                'owner' => ['name' => 'Isaipriyan', 'username' => 'tech_owner', 'email' => 'isai@cherry.com'],
+                'manager' => ['name' => 'Lisa Manager', 'username' => 'tech_manager', 'email' => 'tech.mgr@cherry.com'],
+                'employee' => ['name' => 'Tom Staff', 'username' => 'tech_staff', 'email' => 'tech.staff@cherry.com'],
             ],
         ];
 
@@ -50,8 +50,8 @@ class ShopTypeSampleSeeder extends Seeder
                     'shop_type' => $data['type'],
                     'owner_id' => $owner->id,
                     'is_active' => true,
-                    'phone' => '555-' . rand(1000, 9999),
-                    'address' => '123 Main Street, City',
+                    'phone' => '076 3029951',
+                    'address' => 'Kokkuvil East, Kokkuvil',
                 ]
             );
 

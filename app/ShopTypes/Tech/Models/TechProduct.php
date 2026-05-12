@@ -25,13 +25,16 @@ class TechProduct extends Model
         'category_id',
         'unit_id',
         'name',
+        'slug',
         'code',
+        'barcode',
         'quantity',
         'quantity_alert',
         'buying_price',
         'selling_price',
         'notes',
         'product_image',
+        'warranty_id',
         'brand',
         'model_number',
         'track_serial_numbers',
@@ -143,6 +146,11 @@ class TechProduct extends Model
     public function getFormattedBuyingPrice(): string
     {
         return 'LKR ' . number_format($this->buying_price / 100, 2);
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
     }
 
     public function getTable(): string

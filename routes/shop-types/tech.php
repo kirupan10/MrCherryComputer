@@ -8,6 +8,7 @@ use App\ShopTypes\Tech\Controllers\TechWarrantyController;
 use App\ShopTypes\Tech\Controllers\TechRepairJobController;
 use App\ShopTypes\Tech\Controllers\TechSerialNumberController;
 use App\ShopTypes\Tech\Controllers\SalesController;
+use App\ShopTypes\Tech\Controllers\FinanceReportController;
 use App\ShopTypes\Tech\Controllers\ProfileController;
 use App\ShopTypes\Tech\Controllers\CategoryController;
 use App\ShopTypes\Tech\Controllers\WarrantyController;
@@ -43,6 +44,8 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 // Profile & Settings
 Route::get('/profile', [ProfileController::class, 'userProfile'])->name('user.profile');
 Route::patch('/profile', [ProfileController::class, 'userProfileUpdate'])->name('user.profile.update');
+Route::get('/profile/edit', [ProfileController::class, 'edit'])->name('profile.edit');
+Route::patch('/profile/update', [ProfileController::class, 'update'])->name('profile.update');
 Route::get('/settings', [ProfileController::class, 'settings'])->name('profile.settings');
 Route::get('/features', [ProfileController::class, 'features'])->name('features');
 Route::post('/features', [ProfileController::class, 'updateShopSettings'])->name('features.update');
@@ -269,47 +272,10 @@ Route::get('/Barcode', function () {
     return redirect()->route('tech.barcode.index');
 });
 
-Route::middleware(['role:finance_access', 'shop.tenant'])->prefix('finance')->name('finance.')->group(function () {
-    Route::get('/', [\App\Http\Controllers\FinanceController::class, 'dashboard'])->name('index');
-    Route::get('/pnl-statement', [\App\Http\Controllers\FinanceController::class, 'profitLoss'])->name('pnl-statement');
-    Route::get('/profit-loss', [\App\Http\Controllers\FinanceController::class, 'profitLoss'])->name('profit-loss');
-    Route::get('/monthly-report', [\App\Http\Controllers\FinanceController::class, 'monthlyReport'])->name('monthly-report');
-    Route::post('/verify-profit', [\App\Http\Controllers\FinanceController::class, 'verifyProfit'])->name('verify-profit');
-    Route::post('/update-kpi-calculations', [\App\Http\Controllers\FinanceController::class, 'updateKpiCalculations'])->name('update-kpi-calculations');
-    Route::post('/update-stored-profit', [\App\Http\Controllers\FinanceController::class, 'updateStoredProfit'])->name('update-stored-profit');
-    Route::post('/bulk-update-profit', [\App\Http\Controllers\FinanceController::class, 'bulkUpdateProfit'])->name('bulk-update-profit');
-    Route::post('/bulk-preview-profit', [\App\Http\Controllers\FinanceController::class, 'bulkPreviewProfit'])->name('bulk-preview-profit');
-    Route::post('/update-selected-profit', [\App\Http\Controllers\FinanceController::class, 'updateSelectedProfit'])->name('update-selected-profit');
-});
-
 Route::prefix('reports')->name('reports.')->group(function () {
-    Route::get('/', [PageController::class, 'reportsIndex'])->name('index');
-    Route::get('/transactions', [\App\Http\Controllers\SalesReportController::class, 'transactions'])->name('transactions');
-    Route::get('/transactions/download', [\App\Http\Controllers\SalesReportController::class, 'downloadTransactions'])->name('transactions.download');
-    Route::get('/inventory', [\App\Http\Controllers\SalesReportController::class, 'inventory'])->name('inventory');
-    Route::get('/inventory/download', [\App\Http\Controllers\SalesReportController::class, 'downloadInventory'])->name('inventory.download');
     Route::get('/warranty', [PageController::class, 'reportsWarranty'])->name('warranty');
     Route::get('/repairs', [PageController::class, 'reportsRepairs'])->name('repairs');
     Route::get('/serial-numbers', [PageController::class, 'reportsSerialNumbers'])->name('serial-numbers');
-
-    Route::prefix('business')->name('business.')->group(function () {
-        Route::get('/monthly', [\App\Http\Controllers\MonthlyBusinessReportController::class, 'index'])->name('monthly');
-        Route::get('/monthly/pdf', [\App\Http\Controllers\MonthlyBusinessReportController::class, 'exportPdf'])->name('monthly.pdf');
-        Route::get('/compare', [\App\Http\Controllers\MonthlyBusinessReportController::class, 'compareShops'])->name('compare');
-    });
-
-    Route::prefix('external-funds')->name('external-funds.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\ExternalFundController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\ExternalFundController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\ExternalFundController::class, 'store'])->name('store');
-        Route::get('/report', [\App\Http\Controllers\ExternalFundController::class, 'report'])->name('report');
-        Route::get('/{externalFund}', [\App\Http\Controllers\ExternalFundController::class, 'show'])->name('show');
-        Route::get('/{externalFund}/edit', [\App\Http\Controllers\ExternalFundController::class, 'edit'])->name('edit');
-        Route::put('/{externalFund}', [\App\Http\Controllers\ExternalFundController::class, 'update'])->name('update');
-        Route::delete('/{externalFund}', [\App\Http\Controllers\ExternalFundController::class, 'destroy'])->name('destroy');
-        Route::post('/{externalFund}/repayments', [\App\Http\Controllers\ExternalFundController::class, 'addRepayment'])->name('repayments.add');
-        Route::delete('/repayments/{repayment}', [\App\Http\Controllers\ExternalFundController::class, 'deleteRepayment'])->name('repayments.delete');
-    });
 });
 
 // Tech sales canonical routes (/tech/sales...)
@@ -329,60 +295,77 @@ Route::middleware(['role:reports_access', 'shop.tenant'])->prefix('sales')->name
     Route::get('/api/weekly-data', [SalesController::class, 'getWeeklySalesData'])->name('api.weekly');
     Route::get('/api/monthly-data', [SalesController::class, 'getMonthlySalesData'])->name('api.monthly');
     Route::get('/api/yearly-data', [SalesController::class, 'getYearlySalesData'])->name('api.yearly');
+
+    // Finance report pages and APIs
+    Route::prefix('finance')->name('finance.')->group(function () {
+        Route::get('/returns', [FinanceReportController::class, 'returnsIndex'])->name('returns');
+        Route::get('/returns/api', [FinanceReportController::class, 'returnsApi'])->name('returns.api');
+
+        Route::get('/expenses', [FinanceReportController::class, 'expensesIndex'])->name('expenses');
+        Route::get('/expenses/api', [FinanceReportController::class, 'expensesApi'])->name('expenses.api');
+
+        Route::get('/credit-sales', [FinanceReportController::class, 'creditSalesIndex'])->name('credit-sales');
+        Route::get('/credit-sales/api', [FinanceReportController::class, 'creditSalesApi'])->name('credit-sales.api');
+    });
 });
 
 // Backward-compatible sales report URLs: /tech/reports/sales* -> /tech/sales*
 Route::get('/reports/sales', function () {
     return redirect()->route('tech.sales.index');
-})->name('reports.sales.index');
+});
 Route::get('/reports/sales/daily', function (Request $request) {
     return redirect()->route('tech.sales.daily', $request->query());
-})->name('reports.sales.daily');
+});
 Route::get('/reports/sales/daily/download', function (Request $request) {
     return redirect()->route('tech.sales.daily.download', $request->query());
-})->name('reports.sales.daily.download');
+});
 Route::get('/reports/sales/weekly', function (Request $request) {
     return redirect()->route('tech.sales.weekly', $request->query());
-})->name('reports.sales.weekly');
+});
 Route::get('/reports/sales/weekly/download', function (Request $request) {
     return redirect()->route('tech.sales.weekly.download', $request->query());
-})->name('reports.sales.weekly.download');
+});
 Route::get('/reports/sales/monthly', function (Request $request) {
     return redirect()->route('tech.sales.monthly', $request->query());
-})->name('reports.sales.monthly');
+});
 Route::get('/reports/sales/monthly/download', function (Request $request) {
     return redirect()->route('tech.sales.monthly.download', $request->query());
-})->name('reports.sales.monthly.download');
+});
 Route::get('/reports/sales/yearly', function (Request $request) {
     return redirect()->route('tech.sales.yearly', $request->query());
-})->name('reports.sales.yearly');
+});
 Route::get('/reports/sales/yearly/download', function (Request $request) {
     return redirect()->route('tech.sales.yearly.download', $request->query());
-})->name('reports.sales.yearly.download');
+});
 Route::get('/reports/sales/api/daily-data', function (Request $request) {
     return redirect()->route('tech.sales.api.daily', $request->query());
-})->name('reports.sales.api.daily');
+});
 Route::get('/reports/sales/api/weekly-data', function (Request $request) {
     return redirect()->route('tech.sales.api.weekly', $request->query());
-})->name('reports.sales.api.weekly');
+});
 Route::get('/reports/sales/api/monthly-data', function (Request $request) {
     return redirect()->route('tech.sales.api.monthly', $request->query());
-})->name('reports.sales.api.monthly');
+});
 Route::get('/reports/sales/api/yearly-data', function (Request $request) {
     return redirect()->route('tech.sales.api.yearly', $request->query());
-})->name('reports.sales.api.yearly');
-
-Route::middleware(['role:reports_access', 'shop.tenant'])->prefix('reports/sales/finance')->name('reports.sales.finance.')->group(function () {
-    Route::get('/returns', [\App\Http\Controllers\FinanceReportController::class, 'returnsIndex'])->name('returns');
-    Route::get('/returns/api', [\App\Http\Controllers\FinanceReportController::class, 'returnsApi'])->name('returns.api');
-    Route::get('/expenses', [\App\Http\Controllers\FinanceReportController::class, 'expensesIndex'])->name('expenses');
-    Route::get('/expenses/api', [\App\Http\Controllers\FinanceReportController::class, 'expensesApi'])->name('expenses.api');
-    Route::get('/credit-sales', [\App\Http\Controllers\FinanceReportController::class, 'creditSalesIndex'])->name('credit-sales');
-    Route::get('/credit-sales/api', [\App\Http\Controllers\FinanceReportController::class, 'creditSalesApi'])->name('credit-sales.api');
-    Route::get('/customers', [\App\Http\Controllers\FinanceReportController::class, 'customersIndex'])->name('customers');
-    Route::get('/customers/api', [\App\Http\Controllers\FinanceReportController::class, 'customersApi'])->name('customers.api');
-    Route::get('/products', [\App\Http\Controllers\FinanceReportController::class, 'productsIndex'])->name('products');
-    Route::get('/products/api', [\App\Http\Controllers\FinanceReportController::class, 'productsApi'])->name('products.api');
+});
+Route::get('/reports/sales/finance/returns', function (Request $request) {
+    return redirect()->route('tech.sales.finance.returns', $request->query());
+});
+Route::get('/reports/sales/finance/returns/api', function (Request $request) {
+    return redirect()->route('tech.sales.finance.returns.api', $request->query());
+});
+Route::get('/reports/sales/finance/expenses', function (Request $request) {
+    return redirect()->route('tech.sales.finance.expenses', $request->query());
+});
+Route::get('/reports/sales/finance/expenses/api', function (Request $request) {
+    return redirect()->route('tech.sales.finance.expenses.api', $request->query());
+});
+Route::get('/reports/sales/finance/credit-sales', function (Request $request) {
+    return redirect()->route('tech.sales.finance.credit-sales', $request->query());
+});
+Route::get('/reports/sales/finance/credit-sales/api', function (Request $request) {
+    return redirect()->route('tech.sales.finance.credit-sales.api', $request->query());
 });
 
 // Shared reports routes file removed in tech-only build.

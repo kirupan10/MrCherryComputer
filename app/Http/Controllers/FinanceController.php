@@ -21,16 +21,6 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class FinanceController extends Controller
 {
-    private function financeView(string $view): string
-    {
-        $shopType = function_exists('active_shop_type') ? active_shop_type() : 'tech';
-        $shopView = "shop-types.{$shopType}.finance.{$view}";
-
-        return view()->exists($shopView)
-            ? $shopView
-            : "finance.{$view}";
-    }
-
     /**
      * Finance Dashboard - Overview of all financial metrics
      */
@@ -108,7 +98,7 @@ class FinanceController extends Controller
                 ->count() ?? 0,
         ];
 
-        return view($this->financeView('dashboard'), compact(
+        return view('finance.dashboard', compact(
             'revenue',
             'grossProfit',
             'expenses',
@@ -163,7 +153,7 @@ class FinanceController extends Controller
         // Get period-by-period comparison
         $periodComparison = $this->getPeriodComparison($shopId, $start, $end, $groupBy);
 
-        return view($this->financeView('profit-loss'), compact(
+        return view('finance.profit-loss', compact(
             'revenueBreakdown',
             'expenseBreakdown',
             'totalRevenue',
@@ -242,7 +232,7 @@ class FinanceController extends Controller
             $dailyBreakdown = $this->getDailyBreakdown($shopId, $last7DaysStart, $actualEndDate);
         }
 
-        return view($this->financeView('monthly-report'), compact(
+        return view('finance.monthly-report', compact(
             'revenue',
             'grossProfit',
             'netProfit',
@@ -1191,3 +1181,4 @@ class FinanceController extends Controller
     }
 
 }
+

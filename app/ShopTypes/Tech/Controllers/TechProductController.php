@@ -8,7 +8,11 @@ use App\Models\Category;
 use App\Models\Unit;
 use App\Models\Warranty;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use App\Traits\HasShopFeatures;
+use Picqer\Barcode\BarcodeGeneratorSVG;
 
 class TechProductController extends Controller
 {
@@ -47,7 +51,7 @@ class TechProductController extends Controller
             'categories' => $categories->count(),
         ];
 
-        return view('shop-types.tech.products.index', compact('products', 'categories', 'productCards'));
+        return view('products.index', compact('products', 'categories', 'productCards'));
     }
 
     public function create()
@@ -55,10 +59,14 @@ class TechProductController extends Controller
         $shop = $this->getCurrentShop();
 
         $categories = Category::where('shop_id', $shop->id)->orderBy('name')->get();
-        $units = Unit::where('shop_id', $shop->id)->orderBy('name')->get();
-        $warranties = Warranty::all(['id', 'name', 'duration', 'slug']);
+        $units = Unit::query()
+            ->whereNull('shop_id')
+            ->orWhere('shop_id', $shop->id)
+            ->orderBy('name')
+            ->get();
+        $warranties = Warranty::where('shop_id', $shop->id)->orderBy('name')->get();
 
-        return view('shop-types.tech.products.create', compact('categories', 'units', 'warranties'));
+        return view('products.create', compact('categories', 'units', 'warranties'));
     }
 
     public function store(Request $request)
@@ -68,9 +76,10 @@ class TechProductController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|unique:' . $productTable . ',code',
+            'code' => 'nullable|string|max:255|unique:' . $productTable . ',code',
             'category_id' => 'nullable|exists:categories,id',
             'unit_id' => 'nullable|exists:units,id',
+            'warranty_id' => 'nullable|exists:warranties,id',
             'quantity' => 'required|integer|min:0',
             'quantity_alert' => 'required|integer|min:0',
             'buying_price' => 'required|numeric|min:0',
@@ -85,13 +94,31 @@ class TechProductController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Convert prices to cents
-        $validated['buying_price'] = $validated['buying_price'] * 100;
-        $validated['selling_price'] = $validated['selling_price'] * 100;
+        if (empty($validated['code'])) {
+            $validated['code'] = $this->generateProductCode($productTable, (int) $shop->id);
+        }
+        $validated['slug'] = $this->generateProductSlug($productTable, (string) $validated['name'], (int) $shop->id);
         $validated['shop_id'] = $shop->id;
         $validated['created_by'] = auth()->id();
 
         $product = TechProduct::create($validated);
+
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tech product created successfully',
+                'product' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'code' => $product->code,
+                    'slug' => $product->slug,
+                    'selling_price' => $product->selling_price,
+                    'buying_price' => $product->buying_price,
+                    'quantity' => $product->quantity,
+                    'unit_id' => $product->unit_id,
+                ],
+            ]);
+        }
 
         return redirect()
             ->route('tech.products.show', $product)
@@ -104,7 +131,14 @@ class TechProductController extends Controller
 
         $product->load(['category', 'unit', 'serialNumbers', 'warrantyClaims', 'repairJobs']);
 
-        return view('shop-types.tech.products.show', compact('product'));
+        $generator = new BarcodeGeneratorSVG();
+        $barcodeValue = $product->barcode ?? $product->code;
+        $barcodeType = ($product->barcode && strlen($product->barcode) == 12)
+            ? $generator::TYPE_EAN_13
+            : $generator::TYPE_CODE_128;
+        $barcode = $generator->getBarcode($barcodeValue, $barcodeType, 3, 80);
+
+        return view('products.show', compact('product', 'barcode'));
     }
 
     public function edit(TechProduct $product)
@@ -113,10 +147,14 @@ class TechProductController extends Controller
 
         $shop = $this->getCurrentShop();
         $categories = Category::where('shop_id', $shop->id)->orderBy('name')->get();
-        $units = Unit::where('shop_id', $shop->id)->orderBy('name')->get();
-        $warranties = Warranty::all(['id', 'name', 'duration', 'slug']);
+        $units = Unit::query()
+            ->whereNull('shop_id')
+            ->orWhere('shop_id', $shop->id)
+            ->orderBy('name')
+            ->get();
+        $warranties = Warranty::where('shop_id', $shop->id)->orderBy('name')->get();
 
-        return view('shop-types.tech.products.edit', compact('product', 'categories', 'units', 'warranties'));
+        return view('products.edit', compact('product', 'categories', 'units', 'warranties'));
     }
 
     public function update(Request $request, TechProduct $product)
@@ -126,9 +164,10 @@ class TechProductController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'code' => 'required|string|unique:' . $productTable . ',code,' . $product->id,
+            'code' => 'nullable|string|max:255|unique:' . $productTable . ',code,' . $product->id,
             'category_id' => 'nullable|exists:categories,id',
             'unit_id' => 'nullable|exists:units,id',
+            'warranty_id' => 'nullable|exists:warranties,id',
             'quantity' => 'required|integer|min:0',
             'quantity_alert' => 'required|integer|min:0',
             'buying_price' => 'required|numeric|min:0',
@@ -143,9 +182,19 @@ class TechProductController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $validated['buying_price'] = $validated['buying_price'] * 100;
-        $validated['selling_price'] = $validated['selling_price'] * 100;
-        $validated['updated_by'] = auth()->id();
+        if (empty($validated['code'])) {
+            $validated['code'] = $product->code ?: $this->generateProductCode($productTable, (int) $product->shop_id);
+        }
+        $validated['slug'] = $this->generateProductSlug(
+            $productTable,
+            (string) $validated['name'],
+            (int) $product->shop_id,
+            (int) $product->id
+        );
+
+        if (Schema::hasColumn($productTable, 'updated_by')) {
+            $validated['updated_by'] = auth()->id();
+        }
 
         $product->update($validated);
 
@@ -163,5 +212,49 @@ class TechProductController extends Controller
         return redirect()
             ->route('tech.products.index')
             ->with('success', 'Tech product deleted successfully');
+    }
+
+    private function generateProductCode(string $table, int $shopId): string
+    {
+        $lastCode = DB::table($table)
+            ->where('shop_id', $shopId)
+            ->where('code', 'like', 'PRD%')
+            ->orderByDesc('id')
+            ->value('code');
+
+        $nextNumber = 1;
+        if ($lastCode && preg_match('/^PRD(\d+)/', $lastCode, $matches)) {
+            $nextNumber = ((int) $matches[1]) + 1;
+        }
+
+        return 'PRD' . str_pad((string) $nextNumber, 5, '0', STR_PAD_LEFT);
+    }
+
+    private function generateProductSlug(string $table, string $name, int $shopId, ?int $ignoreId = null): string
+    {
+        $baseSlug = Str::slug($name);
+        if ($baseSlug === '') {
+            $baseSlug = 'product';
+        }
+
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (true) {
+            $query = DB::table($table)
+                ->where('shop_id', $shopId)
+                ->where('slug', $slug);
+
+            if ($ignoreId !== null) {
+                $query->where('id', '!=', $ignoreId);
+            }
+
+            if (!$query->exists()) {
+                return $slug;
+            }
+
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
     }
 }

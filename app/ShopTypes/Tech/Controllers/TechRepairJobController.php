@@ -76,7 +76,7 @@ class TechRepairJobController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('shop-types.tech.repairs.index', compact('repairJobs', 'technicians'));
+        return view('repairs.index', compact('repairJobs', 'technicians'));
     }
 
     /**
@@ -100,7 +100,7 @@ class TechRepairJobController extends Controller
                 ->findOrFail($request->serial_number_id);
         }
 
-        return view('shop-types.tech.repairs.create', compact('customers', 'products', 'technicians', 'selectedSerial'));
+        return view('repairs.create', compact('customers', 'products', 'technicians', 'selectedSerial'));
     }
 
     /**
@@ -161,7 +161,7 @@ class TechRepairJobController extends Controller
             'diagnostics'
         ]);
 
-        return view('shop-types.tech.repairs.show', compact('repairJob'));
+        return view('repairs.show', compact('repairJob'));
     }
 
     /**
@@ -183,7 +183,7 @@ class TechRepairJobController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('shop-types.tech.repairs.edit', compact('repairJob', 'customers', 'products', 'technicians'));
+        return view('repairs.edit', compact('repairJob', 'customers', 'products', 'technicians'));
     }
 
     /**
@@ -399,7 +399,7 @@ class TechRepairJobController extends Controller
             'diagnostics'
         ]);
 
-        return view('shop-types.tech.repairs.print', compact('repairJob'));
+        return view('repairs.print', compact('repairJob'));
     }
 
     /**

@@ -10,24 +10,24 @@ class BusinessTransactionController extends \App\Http\Controllers\BusinessTransa
 	public function index(Request $request)
 	{
 		$response = parent::index($request);
-		return view('shop-types.tech.business-transactions.index', $response->getData());
+		return view('business-transactions.index', $response->getData());
 	}
 
 	public function create()
 	{
 		$response = parent::create();
-		return view('shop-types.tech.business-transactions.create', $response->getData());
+		return view('business-transactions.create', $response->getData());
 	}
 
 	public function show(BusinessTransaction $transaction)
 	{
 		$response = parent::show($transaction);
-		return view('shop-types.tech.business-transactions.show', $response->getData());
+		return view('business-transactions.show', $response->getData());
 	}
 
 	public function edit(BusinessTransaction $transaction)
 	{
 		$response = parent::edit($transaction);
-		return view('shop-types.tech.business-transactions.edit', $response->getData());
+		return view('business-transactions.edit', $response->getData());
 	}
 }

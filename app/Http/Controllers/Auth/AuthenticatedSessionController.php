@@ -23,8 +23,8 @@ class AuthenticatedSessionController extends Controller
             return view('auth.login');
         }
 
-        if (view()->exists('shop-types.tech.auth.login')) {
-            return view('shop-types.tech.auth.login');
+        if (view()->exists('auth.login')) {
+            return view('auth.login');
         }
 
         abort(500, 'Login view is not configured.');

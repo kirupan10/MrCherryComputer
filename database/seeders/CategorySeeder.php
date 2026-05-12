@@ -18,16 +18,48 @@ class CategorySeeder extends Seeder
 
         $defaultCategories = [
             [
-                'name' => 'Other',
-                'slug' => 'other',
+                'name' => 'PROCESSOR',
+                'slug' => 'processor',
             ],
             [
-                'name' => 'Preparing Foods',
-                'slug' => 'kitchen-preparing-food',
+                'name' => 'MOTHERBOARD',
+                'slug' => 'motherboard',
             ],
             [
-                'name' => 'Selling Goods',
-                'slug' => 'selling-goods',
+                'name' => 'MEMORY(RAM)',
+                'slug' => 'memory-ram',
+            ],
+            [
+                'name' => 'STORAGE',
+                'slug' => 'storage',
+            ],
+            [
+                'name' => 'POWER SUPPLY',
+                'slug' => 'power-supply',
+            ],
+            [
+                'name' => 'CASE',
+                'slug' => 'case',
+            ],
+            [
+                'name' => 'COOLERS',
+                'slug' => 'coolers',
+            ],
+            [
+                'name' => 'GRAPHICS CARD',
+                'slug' => 'graphics-card',
+            ],
+            [
+                'name' => 'LAPTOP',
+                'slug' => 'laptop',
+            ],
+            [
+                'name' => 'POWER BANK',
+                'slug' => 'power-bank',
+            ],
+            [
+                'name' => 'OTHERS',
+                'slug' => 'others',
             ],
         ];
 

@@ -49,7 +49,7 @@ class FinanceReportController extends Controller
 
         $results = $query->orderBy('return_rate', 'desc')->limit(200)->get();
 
-        return view($this->financeReportView('returns'), [
+        return view('reports.finance.returns', [
             'results' => $results,
             'filters' => [
                 'product' => $product,
@@ -89,16 +89,6 @@ class FinanceReportController extends Controller
         return response()->json($rows);
     }
 
-    private function financeReportView(string $report): string
-    {
-        $shopType = function_exists('active_shop_type') ? active_shop_type() : 'tech';
-        $shopView = "shop-types.{$shopType}.reports.finance.{$report}";
-
-        return view()->exists($shopView)
-            ? $shopView
-            : "reports.finance.{$report}";
-    }
-
     /**
      * Expenses summary view (uses DB view `v_monthly_expenses_summary`).
      */
@@ -136,7 +126,7 @@ class FinanceReportController extends Controller
                 return $r;
             });
 
-        return view($this->financeReportView('expenses'), [
+        return view('reports.finance.expenses', [
             'rows' => $rows,
             'year' => $year,
         ]);
@@ -201,7 +191,7 @@ class FinanceReportController extends Controller
 
         $rows = $query->orderBy('sale_date', 'desc')->limit(200)->get();
 
-        return view($this->financeReportView('credit_sales'), [
+        return view('reports.finance.credit_sales', [
             'rows' => $rows,
             'filters' => ['start' => $start, 'end' => $end, 'customer' => $customer]
         ]);
@@ -270,7 +260,7 @@ class FinanceReportController extends Controller
         if ($q) $query->where('customers.name', 'like', "%{$q}%");
 
         $rows = $query->orderBy('total_credit_cents', 'desc')->limit(200)->get();
-        return view($this->financeReportView('customers'), ['rows' => $rows, 'q' => $q]);
+        return view('reports.finance.customers', ['rows' => $rows, 'q' => $q]);
     }
 
     public function customersApi(Request $request)
@@ -324,7 +314,7 @@ class FinanceReportController extends Controller
         if ($shopId) $query->where('orders.shop_id', $shopId);
         if ($q) $query->where('products.name', 'like', "%{$q}%");
         $rows = $query->orderBy('total_amount', 'desc')->limit(200)->get();
-        return view($this->financeReportView('products'), ['rows' => $rows, 'q' => $q]);
+        return view('reports.finance.products', ['rows' => $rows, 'q' => $q]);
     }
 
     public function productsApi(Request $request)
