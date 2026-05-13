@@ -169,7 +169,7 @@
                                                         readonly
                                                 >
                                                     @foreach ($categories as $category)
-                                                        <option value="{{ $category->id }}" selected>
+                                                        <option value="{{ $category->id }}" data-slug="{{ $category->slug }}" selected>
                                                             {{ $category->name }}
                                                         </option>
                                                     @endforeach
@@ -178,12 +178,12 @@
                                                 <select name="category_id" id="category_id"
                                                         class="form-select @error('category_id') is-invalid @enderror"
                                                 >
-                                                    <option value="" selected>
+                                                    <option value="" data-slug="" selected>
                                                         -- No Category --
                                                     </option>
 
                                                     @foreach ($categories as $category)
-                                                        <option value="{{ $category->id }}" @if(old('category_id') == $category->id) selected="selected" @endif>
+                                                        <option value="{{ $category->id }}" data-slug="{{ $category->slug }}" @if(old('category_id') == $category->id) selected="selected" @endif>
                                                             {{ $category->name }}
                                                         </option>
                                                     @endforeach
@@ -285,7 +285,12 @@
                                         />
                                     </div>
 
-                                    <div class="col-sm-6 col-md-6">
+                                    @php
+                                        $oldCategoryId = old('category_id');
+                                        $selectedCategorySlug = $oldCategoryId ? ($categories->firstWhere('id', $oldCategoryId)?->slug ?? '') : '';
+                                        $showWarranty = $selectedCategorySlug === 'memory';
+                                    @endphp
+                                    <div class="col-sm-6 col-md-6" id="warranty-wrapper" style="{{ $showWarranty ? '' : 'display:none' }}">
                                         <div class="mb-3">
                                             <label for="warranty_id" class="form-label">
                                                 {{ __('Warranty') }}
@@ -300,9 +305,8 @@
 
                                                 @foreach ($warranties as $warranty)
                                                     <option value="{{ $warranty->id }}"
+                                                            data-slug="{{ $warranty->slug }}"
                                                         @if(old('warranty_id') == $warranty->id)
-                                                            selected
-                                                        @elseif(!old('warranty_id') && $warranty->slug == '3-years')
                                                             selected
                                                         @endif>
                                                         {{ $warranty->name }} @if($warranty->duration) ({{ $warranty->duration }}) @endif
@@ -367,6 +371,50 @@
     <script src="{{ asset('assets/js/img-preview.js') }}"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // ── Warranty visibility based on category ──────────────────────────────
+        const MEMORY_WARRANTY_SLUGS = ['5-years', '10-years'];
+        const categorySelect  = document.getElementById('category_id');
+        const warrantyWrapper = document.getElementById('warranty-wrapper');
+        const warrantySelect  = document.getElementById('warranty_id');
+
+        function updateWarrantyField() {
+            if (!categorySelect || !warrantyWrapper || !warrantySelect) return;
+
+            const selectedOption = categorySelect.options[categorySelect.selectedIndex];
+            const categorySlug   = selectedOption ? (selectedOption.dataset.slug || '') : '';
+            const isMemory = categorySlug === 'memory';
+
+            if (isMemory) {
+                warrantyWrapper.style.display = '';
+                // Show only 5-year and 10-year warranty options
+                Array.from(warrantySelect.options).forEach(function(opt) {
+                    const slug = opt.dataset.slug || '';
+                    if (slug === '' || MEMORY_WARRANTY_SLUGS.includes(slug)) {
+                        opt.hidden   = false;
+                        opt.disabled = false;
+                    } else {
+                        opt.hidden   = true;
+                        opt.disabled = true;
+                        if (opt.selected) opt.selected = false;
+                    }
+                });
+            } else {
+                warrantyWrapper.style.display = 'none';
+                // Reset selection and restore all options
+                warrantySelect.value = '';
+                Array.from(warrantySelect.options).forEach(function(opt) {
+                    opt.hidden   = false;
+                    opt.disabled = false;
+                });
+            }
+        }
+
+        if (categorySelect) {
+            categorySelect.addEventListener('change', updateWarrantyField);
+            updateWarrantyField(); // run once on page load to sync initial state
+        }
+        // ──────────────────────────────────────────────────────────────────────
+
         const buyingPriceInput = document.getElementById('buying_price');
         const sellingPriceInput = document.getElementById('selling_price');
         const form = buyingPriceInput ? buyingPriceInput.closest('form') : null;
