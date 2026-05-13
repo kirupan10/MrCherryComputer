@@ -90,6 +90,7 @@
                 $monthItems = $returns->sum(function($return) {
                     return $return->items->sum('quantity');
                 });
+                $monthItemsDisplay = number_format((float) $monthItems, 0, '.', ',');
             @endphp
             <div class="card mb-3">
                 <div class="card-header">
@@ -105,7 +106,7 @@
                     </h3>
                     <div class="ms-auto">
                         <span class="badge bg-warning-lt text-warning fs-3">LKR {{ number_format($monthTotal, 2) }}</span>
-                        <span class="badge bg-info-lt text-info fs-3 ms-2">{{ $monthItems }} Items</span>
+                        <span class="badge bg-info-lt text-info fs-3 ms-2">{{ $monthItemsDisplay }} Items</span>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -145,7 +146,7 @@
                                             @foreach($return->items->take(2) as $item)
                                                 <div class="mb-1">
                                                     <span class="badge bg-azure-lt me-1">{{ $item->product->name ?? 'Unknown' }}</span>
-                                                    <span class="text-muted">× {{ $item->quantity }}</span>
+                                                    <span class="text-muted">× {{ number_format((float) $item->quantity, 0, '.', ',') }}</span>
                                                 </div>
                                             @endforeach
                                             @if($return->items->count() > 2)
@@ -157,7 +158,7 @@
                                     @endif
                                 </td>
                                 <td class="text-center">
-                                    <span class="badge bg-info">{{ $return->items->sum('quantity') }}</span>
+                                    <span class="badge bg-info">{{ number_format((float) $return->items->sum('quantity'), 0, '.', ',') }}</span>
                                 </td>
                                 <td class="text-end">
                                     <div class="fw-bold text-warning">LKR {{ number_format($return->total, 2) }}</div>

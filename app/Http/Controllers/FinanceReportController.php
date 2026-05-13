@@ -22,22 +22,43 @@ class FinanceReportController extends Controller
         $minRate = $request->get('min_rate');
         $shopId = auth()->user()->shop_id;
 
+        $salesByProduct = DB::table('order_details as od')
+            ->join('orders as o', 'od.order_id', '=', 'o.id')
+            ->when($shopId, function ($q) use ($shopId) {
+                $q->where('o.shop_id', $shopId);
+            })
+            ->select(
+                'od.product_id',
+                DB::raw('SUM(od.quantity) as total_sold')
+            )
+            ->groupBy('od.product_id');
+
+        $returnsByProduct = DB::table('return_sale_items as rsi')
+            ->join('return_sales as rs', 'rsi.return_sale_id', '=', 'rs.id')
+            ->when($shopId, function ($q) use ($shopId) {
+                $q->where('rs.shop_id', $shopId);
+            })
+            ->select(
+                'rsi.product_id',
+                DB::raw('SUM(rsi.quantity) as total_returned')
+            )
+            ->groupBy('rsi.product_id');
+
         $query = DB::table('products as p')
-            ->leftJoin('order_details as od', 'p.id', '=', 'od.product_id')
-            ->leftJoin('orders as o', 'od.order_id', '=', 'o.id')
-            ->leftJoin('return_sale_items as rsi', 'p.id', '=', 'rsi.product_id')
+            ->leftJoinSub($salesByProduct, 's', function ($join) {
+                $join->on('p.id', '=', 's.product_id');
+            })
+            ->leftJoinSub($returnsByProduct, 'r', function ($join) {
+                $join->on('p.id', '=', 'r.product_id');
+            })
             ->select(
                 'p.id as product_id',
                 'p.name as product_name',
-                DB::raw('COALESCE(SUM(od.quantity), 0) as total_sold'),
-                DB::raw('COALESCE(SUM(rsi.quantity), 0) as total_returned'),
-                DB::raw('CASE WHEN SUM(od.quantity) > 0 THEN (SUM(rsi.quantity) / SUM(od.quantity)) * 100 ELSE 0 END as return_rate')
+                DB::raw('COALESCE(s.total_sold, 0) as total_sold'),
+                DB::raw('COALESCE(r.total_returned, 0) as total_returned'),
+                DB::raw('CASE WHEN COALESCE(s.total_sold, 0) > 0 THEN (COALESCE(r.total_returned, 0) / COALESCE(s.total_sold, 0)) * 100 ELSE 0 END as return_rate')
             )
-            ->groupBy('p.id', 'p.name');
-
-        if ($shopId) {
-            $query->where('o.shop_id', $shopId);
-        }
+            ->whereRaw('COALESCE(r.total_returned, 0) > 0');
 
         if ($product) {
             $query->where('p.name', 'like', "%{$product}%");
@@ -70,18 +91,45 @@ class FinanceReportController extends Controller
 
         $product = $request->get('product');
         $limit = intval($request->get('limit', 50));
+        $shopId = auth()->user()->shop_id;
+
+        $salesByProduct = DB::table('order_details as od')
+            ->join('orders as o', 'od.order_id', '=', 'o.id')
+            ->when($shopId, function ($q) use ($shopId) {
+                $q->where('o.shop_id', $shopId);
+            })
+            ->select(
+                'od.product_id',
+                DB::raw('SUM(od.quantity) as total_sold')
+            )
+            ->groupBy('od.product_id');
+
+        $returnsByProduct = DB::table('return_sale_items as rsi')
+            ->join('return_sales as rs', 'rsi.return_sale_id', '=', 'rs.id')
+            ->when($shopId, function ($q) use ($shopId) {
+                $q->where('rs.shop_id', $shopId);
+            })
+            ->select(
+                'rsi.product_id',
+                DB::raw('SUM(rsi.quantity) as total_returned')
+            )
+            ->groupBy('rsi.product_id');
 
         $query = DB::table('products as p')
-            ->leftJoin('order_details as od', 'p.id', '=', 'od.product_id')
-            ->leftJoin('return_sale_items as rsi', 'p.id', '=', 'rsi.product_id')
+            ->leftJoinSub($salesByProduct, 's', function ($join) {
+                $join->on('p.id', '=', 's.product_id');
+            })
+            ->leftJoinSub($returnsByProduct, 'r', function ($join) {
+                $join->on('p.id', '=', 'r.product_id');
+            })
             ->select(
                 'p.id as product_id',
                 'p.name as product_name',
-                DB::raw('COALESCE(SUM(od.quantity), 0) as total_sold'),
-                DB::raw('COALESCE(SUM(rsi.quantity), 0) as total_returned'),
-                DB::raw('CASE WHEN SUM(od.quantity) > 0 THEN (SUM(rsi.quantity) / SUM(od.quantity)) * 100 ELSE 0 END as return_rate')
+                DB::raw('COALESCE(s.total_sold, 0) as total_sold'),
+                DB::raw('COALESCE(r.total_returned, 0) as total_returned'),
+                DB::raw('CASE WHEN COALESCE(s.total_sold, 0) > 0 THEN (COALESCE(r.total_returned, 0) / COALESCE(s.total_sold, 0)) * 100 ELSE 0 END as return_rate')
             )
-            ->groupBy('p.id', 'p.name');
+            ->whereRaw('COALESCE(r.total_returned, 0) > 0');
 
         if ($product) $query->where('p.name', 'like', "%{$product}%");
 

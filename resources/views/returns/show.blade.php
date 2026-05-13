@@ -201,7 +201,7 @@
                         <div class="row">
                             <div class="col-12">
                                 <div class="text-muted small">Total Quantity</div>
-                                <div class="h3 mb-0">{{ $returnSale->items->sum('quantity') }} Units</div>
+                                <div class="h3 mb-0">{{ number_format((float) $returnSale->items->sum('quantity'), 0, '.', ',') }} Units</div>
                             </div>
                         </div>
                     </div>

@@ -45,8 +45,8 @@
                                 </span>
                             </div>
                             <div class="col">
-                                <div class="text-muted small">Total Products with Returns</div>
-                                <div class="h3 mb-0">{{ count($results) }}</div>
+                                <div class="text-muted small">Total Returned Items</div>
+                                <div class="h3 mb-0">{{ number_format((float) $results->sum('total_returned'), 0, '.', ',') }}</div>
                             </div>
                         </div>
                     </div>
@@ -149,8 +149,8 @@
                         @forelse($results as $r)
                             <tr>
                                 <td>{{ $r->product_name ?? ($r->name ?? '�') }}</td>
-                                <td class="text-end">{{ number_format($r->total_sold ?? 0) }}</td>
-                                <td class="text-end">{{ number_format($r->total_returned ?? $r->total_returns ?? 0) }}</td>
+                                <td class="text-end">{{ number_format((float) ($r->total_sold ?? 0), 0, '.', ',') }}</td>
+                                <td class="text-end">{{ number_format((float) ($r->total_returned ?? $r->total_returns ?? 0), 0, '.', ',') }}</td>
                                 <td class="text-end">
                                     @php
                                         $rate = isset($r->return_rate) ? ($r->return_rate) : 0;
