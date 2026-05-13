@@ -143,7 +143,7 @@
                         <div class="card-body">
                             <div class="d-flex justify-content-between">
                                 <div>
-                                    <h3>LKR {{ number_format(($shopKpis->total_amount ?? 0) / 100, 2) }}</h3>
+                                                   <h3>LKR {{ number_format($shopKpis->total_amount ?? 0, 2) }}</h3>
                                     <p class="mb-0">Total Sales</p>
                                 </div>
                                 <div class="align-self-center">

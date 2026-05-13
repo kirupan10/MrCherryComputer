@@ -32,7 +32,7 @@ class KpiService
     {
         $key = $this->cacheKey('order_kpis');
         $ttl = $this->ttl('KPI_CACHE_TTL', 60);
-        return Cache::remember($key, $ttl, function () {
+         * Returns an object with: total_orders, total_amount (LKR), completed_count, pending_count, cancelled_count, updated_at
             // Calculate KPIs directly from orders table
             $orders = DB::table('orders');
             $totalOrders = $orders->count();
@@ -56,7 +56,7 @@ class KpiService
     {
         $key = $this->cacheKey('order_kpis_by_shop', [$shopId]);
         $ttl = $this->ttl('KPI_CACHE_TTL', 60);
-        return Cache::remember($key, $ttl, function () use ($shopId) {
+         * Returns object with total_orders, total_amount (LKR), completed_count, pending_count, cancelled_count, updated_at
             $orders = DB::table('orders')->where('shop_id', $shopId);
             $totalOrders = $orders->count();
 
