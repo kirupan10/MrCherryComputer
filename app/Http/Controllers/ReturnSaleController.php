@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\ReturnSale;
 use App\Models\ReturnSaleItem;
+use App\Services\KpiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -193,10 +194,10 @@ class ReturnSaleController extends Controller
         }
 
     // KPIs - use DB-side stored procedure via KpiService for faster reads
-    $kpiService = new \App\Services\KpiService();
+    $kpiService = new KpiService();
     $returnKpis = $kpiService->getReturnKpisByShop($shopId);
 
-    $totalReturns = $returnKpis->total_returns ?? 0; // in cents
+    $totalReturns = $returnKpis->total_returns ?? 0;
     // last_30_days_total as a proxied month/period number
     $monthTotal = $returnKpis->last_30_days_total ?? 0;
     $weekTotal = 0; // week-level cached proc not available; keep 0 or compute if necessary
@@ -208,7 +209,7 @@ class ReturnSaleController extends Controller
                 $q->where('shop_id', $shopId);
             });
         }
-    $itemsReturned = $returnKpis->items_returned ?? $itemsQuery->sum('quantity');
+    $itemsReturned = (int) round((float) ($returnKpis->items_returned ?? $itemsQuery->sum('quantity')));
 
         // Recent returns
         $recent = (clone $base)->latest('return_date')->latest()->limit(10)->with('items.product')->get();

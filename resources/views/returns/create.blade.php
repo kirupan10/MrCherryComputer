@@ -66,7 +66,7 @@
                             </div>
                             <div class="col">
                                 <div class="font-weight-medium text-muted small text-uppercase">Total Returns</div>
-                                <div class="h3 mb-0">LKR {{ number_format(($totalReturns ?? 0) / 100, 2) }}</div>
+                                <div class="h3 mb-0">LKR {{ number_format($totalReturns ?? 0, 2) }}</div>
                             </div>
                         </div>
                     </div>
@@ -89,7 +89,7 @@
                             </div>
                             <div class="col">
                                 <div class="font-weight-medium text-muted small text-uppercase">Items Returned</div>
-                                <div class="h3 mb-0">{{ $itemsReturned ?? 0 }}</div>
+                                <div class="h3 mb-0">{{ number_format((float) ($itemsReturned ?? 0), 0, '.', ',') }}</div>
                             </div>
                         </div>
                     </div>
@@ -112,7 +112,7 @@
                             </div>
                             <div class="col">
                                 <div class="font-weight-medium text-muted small text-uppercase">This Month</div>
-                                <div class="h3 mb-0">LKR {{ number_format(($monthTotal ?? 0) / 100, 2) }}</div>
+                                <div class="h3 mb-0">LKR {{ number_format($monthTotal ?? 0, 2) }}</div>
                             </div>
                         </div>
                     </div>
@@ -134,7 +134,7 @@
                             </div>
                             <div class="col">
                                 <div class="font-weight-medium text-muted small text-uppercase">This Week</div>
-                                <div class="h3 mb-0">LKR {{ number_format(($weekTotal ?? 0) / 100, 2) }}</div>
+                                <div class="h3 mb-0">LKR {{ number_format($weekTotal ?? 0, 2) }}</div>
                             </div>
                         </div>
                     </div>
