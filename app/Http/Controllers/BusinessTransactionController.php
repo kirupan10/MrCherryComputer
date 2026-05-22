@@ -149,7 +149,6 @@ class BusinessTransactionController extends Controller
             'paid_by' => 'nullable|string|max:50',
             'paid_by_user_id' => 'nullable|exists:users,id',
             'total_amount' => 'required|numeric|min:0',
-            'discount_amount' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:100',
             // 'status' => 'required|in:completed,pending,cancelled', // Removed for Pay action
@@ -158,8 +157,7 @@ class BusinessTransactionController extends Controller
         ]);
 
         // Calculate net amount
-        $validated['net_amount'] = $validated['total_amount']
-            - ($validated['discount_amount'] ?? 0);
+        $validated['net_amount'] = $validated['total_amount'];
 
         // Set default type if missing
         if (empty($validated['transaction_type'])) {
@@ -279,17 +277,15 @@ class BusinessTransactionController extends Controller
             'paid_by' => 'nullable|string|max:50',
             'paid_by_user_id' => 'nullable|exists:users,id',
             'total_amount' => 'required|numeric|min:0',
-            'discount_amount' => 'nullable|numeric|min:0',
             'description' => 'nullable|string',
             'category' => 'nullable|string|max:100',
-            'status' => 'required|in:completed,pending,cancelled',
+            'status' => 'required|in:completed,pending',
             'items' => 'nullable|array',
             'attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         // Calculate net amount
-        $validated['net_amount'] = $validated['total_amount']
-            - ($validated['discount_amount'] ?? 0);
+        $validated['net_amount'] = $validated['total_amount'];
 
         // Set default type if missing
         if (empty($validated['transaction_type'])) {
