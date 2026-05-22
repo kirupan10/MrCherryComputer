@@ -14,17 +14,6 @@ class VendorController extends Controller
 {
     private function resolveView(string $page): string
     {
-        $shopType = active_shop_type() ?? 'tech';
-        $shopTypeView = "shop-types.{$shopType}.vendors.{$page}";
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        $techView = "shop-types.tech.vendors.{$page}";
-        if (view()->exists($techView)) {
-            return $techView;
-        }
-
         return "vendors.{$page}";
     }
 
@@ -103,7 +92,6 @@ class VendorController extends Controller
             'address' => 'nullable|string',
             'company_name' => 'nullable|string|max:255',
             'tax_number' => 'nullable|string|max:100',
-            'status' => 'required|in:active,inactive',
             'notes' => 'nullable|string',
         ]);
 
@@ -119,7 +107,7 @@ class VendorController extends Controller
             'address' => $validated['address'] ?? null,
             'company_name' => $validated['company_name'] ?? null,
             'tax_number' => $validated['tax_number'] ?? null,
-            'status' => $validated['status'],
+            'status' => 'active',
             'notes' => $validated['notes'] ?? null,
         ]);
 
