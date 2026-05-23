@@ -7,6 +7,21 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
+    protected function createRoute(): string
+    {
+        return 'expenses.create';
+    }
+
+    protected function indexRoute(): string
+    {
+        return 'expenses.index';
+    }
+
+    protected function editRoute(Expense $expense): string
+    {
+        return route('expenses.edit', $expense);
+    }
+
     /**
      * Display a listing of expenses.
      */
@@ -200,7 +215,7 @@ class ExpenseController extends Controller
             'details' => isset($data['details']) ? array_filter($data['details']) : $expense->details,
         ]);
 
-        return redirect()->route('expenses.edit', $expense)->with('status', 'Expense updated');
+        return redirect()->to($this->editRoute($expense))->with('status', 'Expense updated');
     }
     /**
      * Store an expense record.
@@ -256,7 +271,7 @@ class ExpenseController extends Controller
         }
 
         return redirect()
-            ->route('expenses.create')
+            ->route($this->createRoute())
             ->with('success', 'Expense recorded successfully');
     }
 
@@ -278,7 +293,7 @@ class ExpenseController extends Controller
         $expense->delete();
 
         return redirect()
-            ->route('expenses.index')
+            ->route($this->indexRoute())
             ->with('success', 'Expense deleted successfully');
     }
 }
