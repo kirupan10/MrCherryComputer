@@ -13,17 +13,6 @@ class ExternalFundController extends Controller
 {
     private function resolveView(string $page): string
     {
-        $shopType = active_shop_type() ?? 'tech';
-        $shopTypeView = "shop-types.{$shopType}.external-funds.{$page}";
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        $techView = "shop-types.tech.external-funds.{$page}";
-        if (view()->exists($techView)) {
-            return $techView;
-        }
-
         return "external-funds.{$page}";
     }
 
@@ -136,7 +125,7 @@ class ExternalFundController extends Controller
 
         ExternalFund::create($validated);
 
-        return redirect()->to(shop_route('reports.external-funds.index'))
+        return redirect()->route('reports.external-funds.index')
             ->with('success', 'External fund record created successfully.');
     }
 
@@ -193,7 +182,7 @@ class ExternalFundController extends Controller
 
         $externalFund->update($validated);
 
-        return redirect()->to(shop_route('reports.external-funds.show', $externalFund))
+        return redirect()->route('reports.external-funds.show', $externalFund)
             ->with('success', 'External fund updated successfully.');
     }
 
@@ -206,7 +195,7 @@ class ExternalFundController extends Controller
 
         $externalFund->delete();
 
-        return redirect()->to(shop_route('reports.external-funds.index'))
+        return redirect()->route('reports.external-funds.index')
             ->with('success', 'External fund deleted successfully.');
     }
 
@@ -238,7 +227,7 @@ class ExternalFundController extends Controller
             $externalFund->update(['status' => 'completed']);
         }
 
-        return redirect()->to(shop_route('reports.external-funds.show', $externalFund))
+        return redirect()->route('reports.external-funds.show', $externalFund)
             ->with('success', 'Repayment recorded successfully.');
     }
 
@@ -258,7 +247,7 @@ class ExternalFundController extends Controller
             $fund->update(['status' => 'active']);
         }
 
-        return redirect()->to(shop_route('reports.external-funds.show', $fund))
+        return redirect()->route('reports.external-funds.show', $fund)
             ->with('success', 'Repayment deleted successfully.');
     }
 
