@@ -10,6 +10,21 @@ use Illuminate\Support\Facades\File;
 
 class JobController extends Controller
 {
+    protected function showRoute(Job $job): string
+    {
+        return route('jobs.show', $job);
+    }
+
+    protected function indexRoute(): string
+    {
+        return 'jobs.index';
+    }
+
+    protected function listRoute(): string
+    {
+        return 'jobs.list';
+    }
+
     /** Display a listing of the jobs. */
     public function index()
     {
@@ -85,7 +100,7 @@ class JobController extends Controller
     public function create()
     {
         // The index page now contains the create form inline. Redirect to index so users see the all-in-one page.
-        return redirect()->route('jobs.index');
+        return redirect()->route($this->indexRoute());
     }
 
     /** Store a newly created job in storage. */
@@ -166,7 +181,7 @@ class JobController extends Controller
 
         $job = Job::create($jobData);
 
-        return redirect()->route('jobs.show', $job)->with('success', 'Job created successfully');
+        return redirect()->to($this->showRoute($job))->with('success', 'Job created successfully');
     }
 
     /** Display the specified job. */
@@ -247,7 +262,7 @@ class JobController extends Controller
                 'changed_by' => auth()->id(),
             ]);
 
-            return redirect()->route('jobs.list')->with('success', 'Job status updated to ' . ucfirst(str_replace('_', ' ', $validated['status'])));
+            return redirect()->route($this->listRoute())->with('success', 'Job status updated to ' . ucfirst(str_replace('_', ' ', $validated['status'])));
         }
 
         // Full job update
@@ -290,14 +305,14 @@ class JobController extends Controller
 
         $job->update($jobData);
 
-        return redirect()->route('jobs.show', $job)->with('success', 'Job updated successfully');
+        return redirect()->to($this->showRoute($job))->with('success', 'Job updated successfully');
     }
 
     /** Remove the specified job from storage. */
     public function destroy(Job $job)
     {
         $job->delete();
-        return redirect()->route('jobs.index')->with('success', 'Job removed');
+        return redirect()->route($this->indexRoute())->with('success', 'Job removed');
     }
 
     /**
@@ -345,7 +360,7 @@ class JobController extends Controller
                 'Cache-Control' => 'no-cache, no-store, must-revalidate',
                 'Pragma' => 'no-cache',
                 'Expires' => '0',
-            ])->header('Refresh', '1; url=' . route('jobs.show', $jobId));
+            ])->header('Refresh', '1; url=' . $this->showRoute(Job::findOrFail($jobId)));
 
         } catch (\Throwable $e) {
             \Log::error('Job sheet PDF generation failed', [
