@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 
 class DeliveryController extends Controller
 {
+    protected function indexRoute(): string
+    {
+        return 'deliveries.index';
+    }
+
     public function index(Request $request)
     {
         $shopId = $request->user()->shop_id ?? null;
@@ -99,7 +104,7 @@ class DeliveryController extends Controller
             'created_by' => $request->user()->id ?? null,
         ]);
 
-        return redirect()->route('deliveries.index')->with('success', 'Delivery recorded successfully');
+        return redirect()->route($this->indexRoute())->with('success', 'Delivery recorded successfully');
     }
 
     public function show(Delivery $delivery)
@@ -196,6 +201,6 @@ class DeliveryController extends Controller
 
         $delivery->delete();
 
-        return redirect()->route('deliveries.index')->with('success', 'Delivery deleted successfully');
+        return redirect()->route($this->indexRoute())->with('success', 'Delivery deleted successfully');
     }
 }
