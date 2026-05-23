@@ -14,17 +14,6 @@ class ChequeController extends Controller
 {
     private function resolveView(string $page): string
     {
-        $shopType = active_shop_type() ?? 'tech';
-        $shopTypeView = "shop-types.{$shopType}.cheques.{$page}";
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        $techView = "shop-types.tech.cheques.{$page}";
-        if (view()->exists($techView)) {
-            return $techView;
-        }
-
         return "cheques.{$page}";
     }
 
