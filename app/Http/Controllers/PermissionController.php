@@ -22,7 +22,7 @@ class PermissionController extends Controller
         });
     }
 
-    public function index(Request $request, ?string $shopType = null)
+    public function index(Request $request)
     {
         $user = auth()->user();
         if (!$user instanceof User) {
@@ -41,20 +41,11 @@ class PermissionController extends Controller
             abort(404, 'No active shop type found.');
         }
 
-        if ($shopType && $shopType !== $activeShopType) {
-            return redirect()->route('permissions.shop-type.index', ['shopType' => $activeShopType]);
-        }
-
-        if (!$shopType && $request->routeIs('permissions.index')) {
-            return redirect()->route('permissions.shop-type.index', ['shopType' => $activeShopType]);
-        }
-
         $permissions = ShopPermission::forShop($shop->id);
         $definitions = ShopPermission::PERMISSIONS;
 
         $viewCandidates = [
-            "shop-types.{$activeShopType}.permissions.index",
-            'shop-types.tech.permissions.index',
+            'permissions.index',
         ];
 
         foreach ($viewCandidates as $viewName) {
@@ -66,7 +57,7 @@ class PermissionController extends Controller
         abort(404, 'Permissions view not found for active shop type.');
     }
 
-    public function update(Request $request, ?string $shopType = null)
+    public function update(Request $request)
     {
         $user = auth()->user();
         if (!$user instanceof User) {
@@ -83,10 +74,6 @@ class PermissionController extends Controller
         $activeShopType = $shop->shop_type ? shop_type_route_key($shop->shop_type->value) : null;
         if (!$activeShopType) {
             abort(404, 'No active shop type found.');
-        }
-
-        if ($shopType && $shopType !== $activeShopType) {
-            return redirect()->route('permissions.shop-type.index', ['shopType' => $activeShopType]);
         }
 
         // Only shop owners can modify manager permissions
@@ -112,7 +99,7 @@ class PermissionController extends Controller
         ShopPermission::saveForShop($shop->id, $data);
 
         return redirect()
-            ->route('permissions.shop-type.index', ['shopType' => $activeShopType])
+            ->route('permissions.index')
             ->with('success', 'Permissions updated successfully.');
     }
 }
