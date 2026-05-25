@@ -5,16 +5,19 @@ namespace App\Http\Controllers\Order;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Order\OrderStoreRequest;
+use App\Models\AuditLog;
 use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderDetails;
 use App\Models\Product;
 use App\Models\Delivery;
+use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Gloudemans\Shoppingcart\Facades\Cart;
-use PDF;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Cache;
 use setasign\Fpdi\Fpdi;
@@ -30,6 +33,7 @@ class OrderController extends Controller
             'creator:id,name,role',
             'creditSale:id,order_id,status,due_amount',
         ]);
+        /** @var User|null $user */
         $user = auth()->user();
         $shop = null;
         $shopUsers = collect();
@@ -118,7 +122,7 @@ class OrderController extends Controller
 
         // Paginate orders to avoid loading large collections into memory
         $perPage = $request->get('per_page', 20);
-        $orders = $query->orderBy('invoice_no', 'desc')->paginate($perPage)->withQueryString();
+        $orders = $query->orderBy('invoice_no', 'desc')->paginate($perPage)->appends($request->query());
 
         // Get customers for dropdown (scoped to shop)
         $customersQuery = Customer::query();
@@ -165,6 +169,7 @@ class OrderController extends Controller
 
     public function create()
     {
+        /** @var User|null $user */
         $user = auth()->user();
         $shop = $user->getActiveShop() ?: \App\Models\Shop::first();
 
@@ -191,7 +196,7 @@ class OrderController extends Controller
     public function store(OrderStoreRequest $request)
     {
         // Log the incoming request
-        \Log::info('Order store request received', [
+        Log::info('Order store request received', [
             'customer_id' => $request->customer_id,
             'payment_type' => $request->payment_type,
             'cart_items' => $request->cart_items,
@@ -205,7 +210,7 @@ class OrderController extends Controller
             $cartItems = json_decode($request->cart_items, true);
 
             if (empty($cartItems)) {
-                \Log::warning('Empty cart items in order store');
+                Log::warning('Empty cart items in order store');
                 return redirect()
                     ->back()
                     ->withInput()
@@ -233,7 +238,7 @@ class OrderController extends Controller
             }
 
             if (!empty($stockErrors)) {
-                \Log::warning('Stock validation failed', [
+                Log::warning('Stock validation failed', [
                     'errors' => $stockErrors,
                     'cart_items' => $cartItems
                 ]);
@@ -254,10 +259,11 @@ class OrderController extends Controller
 
             // Create order with explicit status and proper field mapping
             $orderData = $request->validated();
-            \Log::info('Validated order data:', $orderData);
+            Log::info('Validated order data:', $orderData);
 
             // Add shop and user tracking
-            $user = auth()->user();
+            /** @var User|null $user */
+        $user = auth()->user();
             $activeShop = $user->getActiveShop();
             $orderData['shop_id'] = $activeShop ? $activeShop->id : null;
             $orderData['created_by'] = $user->id;
@@ -328,7 +334,7 @@ class OrderController extends Controller
                 $orderData['customer_id'] = $walkIn->id;
             }
 
-            \Log::info('Final order data before create:', $orderData);
+            Log::info('Final order data before create:', $orderData);
             $order = Order::create($orderData);
 
             // Create Order Details from cart items
@@ -396,7 +402,7 @@ class OrderController extends Controller
                 $stockService = app(\App\Services\StockService::class);
                 $stockService->adjustStockAfterOrder($order->id);
             } catch (\Exception $e) {
-                \Log::error('Failed to adjust stock after order', [
+                Log::error('Failed to adjust stock after order', [
                     'order_id' => $order->id,
                     'error' => $e->getMessage()
                 ]);
@@ -448,7 +454,7 @@ class OrderController extends Controller
                         'attachment_path' => null,
                     ]);
 
-                    \Log::info('Gift expense created', [
+                    Log::info('Gift expense created', [
                         'order_id' => $order->id,
                         'total_cost' => $totalCost,
                     ]);
@@ -489,7 +495,7 @@ class OrderController extends Controller
                     ]);
                 }
 
-                \Log::info('Credit sale created', [
+                Log::info('Credit sale created', [
                     'credit_sale_id' => $creditSale->id,
                     'order_id' => $order->id,
                     'total_amount' => $total,
@@ -598,7 +604,7 @@ class OrderController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            \Log::error('Order creation failed', [
+            Log::error('Order creation failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -625,6 +631,7 @@ class OrderController extends Controller
             ->findOrFail($orderId);
 
         // Double-check user has access to the shop (extra security layer)
+        /** @var User|null $user */
         $user = auth()->user();
         if (!$user || !$user->canAccessShop($order->shop_id)) {
             abort(404);
@@ -632,7 +639,7 @@ class OrderController extends Controller
 
         // Verify shop_id is set (shop scope should have handled this, but verify)
         if (!$order->shop_id) {
-            \Log::warning('Order without shop_id found', ['order_id' => $order->id]);
+            Log::warning('Order without shop_id found', ['order_id' => $order->id]);
             abort(404);
         }
 
@@ -694,6 +701,7 @@ class OrderController extends Controller
             ->findOrFail($orderId);
 
         // Verify the current user has access to the shop
+        /** @var User|null $user */
         $user = auth()->user();
         if (!$user || !$user->canAccessShop($order->shop_id)) {
             abort(404);
@@ -716,8 +724,18 @@ class OrderController extends Controller
     public function update(Request $request, $orderId)
     {
         $order = Order::findOrFail($orderId);
+        $oldData = [
+            'invoice_no' => $order->invoice_no,
+            'customer_id' => $order->customer_id,
+            'order_date' => $order->order_date,
+            'payment_type' => $order->payment_type,
+            'discount_amount' => $order->discount_amount,
+            'service_charges' => $order->service_charges,
+            'total' => $order->total,
+        ];
 
         // Verify the current user has access to the shop
+        /** @var User|null $user */
         $user = auth()->user();
         if (!$user || !$user->canAccessShop($order->shop_id)) {
             abort(404);
@@ -751,7 +769,21 @@ class OrderController extends Controller
                 'products' => 'nullable|array',
                 'products.*.id' => 'nullable|exists:order_details,id',
                 'products.*.product_id' => 'nullable|exists:products,id',
-                'products.*.quantity' => 'nullable|integer|min:1',
+                'products.*.quantity' => [
+                    'nullable',
+                    'numeric',
+                    'min:1',
+                    function ($attribute, $value, $fail) {
+                        if ($value === null || $value === '') {
+                            return;
+                        }
+
+                        $numericValue = (float) $value;
+                        if (abs($numericValue - round($numericValue)) > 0.000001) {
+                            $fail('The '.$attribute.' field must be a whole number.');
+                        }
+                    },
+                ],
                 'products.*.unitcost' => 'nullable|numeric|min:0',
                 'products.*.serial_number' => 'nullable|string|max:255',
                 'products.*.warranty_id' => 'nullable|exists:warranties,id',
@@ -769,6 +801,24 @@ class OrderController extends Controller
             // If no products provided, just update order info and skip product updates
             if (empty($validated['products'])) {
                 $order->save();
+
+                AuditLog::log(
+                    'update',
+                    'Order',
+                    $order->id,
+                    "Sales updated: invoice {$order->invoice_no}",
+                    $oldData,
+                    [
+                        'invoice_no' => $order->invoice_no,
+                        'customer_id' => $order->customer_id,
+                        'order_date' => $order->order_date,
+                        'payment_type' => $order->payment_type,
+                        'discount_amount' => $order->discount_amount,
+                        'service_charges' => $order->service_charges,
+                        'total' => $order->total,
+                    ]
+                );
+
                 DB::commit();
 
                 return redirect()
@@ -780,12 +830,16 @@ class OrderController extends Controller
             $subTotal = 0;
             $totalProducts = 0;
 
-            foreach ($validated['products'] as $productData) {
+            foreach ($validated['products'] as &$productData) {
+                // Accept values like "10.00" from form inputs, but persist as integers.
+                $productData['quantity'] = (int) round((float) ($productData['quantity'] ?? 0));
+
                 $quantity = $productData['quantity'];
                 $unitcost = $productData['unitcost'];
                 $subTotal += ($quantity * $unitcost);
                 $totalProducts += $quantity;
             }
+            unset($productData);
 
             $order->sub_total = $subTotal;
             $order->total_products = $totalProducts;
@@ -856,6 +910,24 @@ class OrderController extends Controller
                 OrderDetails::whereIn('id', $detailsToDelete)->delete();
             }
 
+            AuditLog::log(
+                'update',
+                'Order',
+                $order->id,
+                "Sales updated: invoice {$order->invoice_no}",
+                $oldData,
+                [
+                    'invoice_no' => $order->invoice_no,
+                    'customer_id' => $order->customer_id,
+                    'order_date' => $order->order_date,
+                    'payment_type' => $order->payment_type,
+                    'discount_amount' => $order->discount_amount,
+                    'service_charges' => $order->service_charges,
+                    'total' => $order->total,
+                    'total_products' => $order->total_products,
+                ]
+            );
+
             DB::commit();
 
             return redirect()
@@ -870,7 +942,7 @@ class OrderController extends Controller
                 ->withInput();
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Failed to update order', [
+            Log::error('Failed to update order', [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -896,7 +968,8 @@ class OrderController extends Controller
 
             // Check if user has access to this order's shop
             $order = $orderDetail->order;
-            $user = auth()->user();
+            /** @var User|null $user */
+        $user = auth()->user();
             if (!$user || !$user->canAccessShop($order->shop_id)) {
                 return response()->json([
                     'success' => false,
@@ -948,7 +1021,7 @@ class OrderController extends Controller
                 'message' => 'Validation failed: ' . implode(', ', $e->errors())
             ], 422);
         } catch (\Exception $e) {
-            \Log::error('Failed to update order item', [
+            Log::error('Failed to update order item', [
                 'item_id' => $itemId,
                 'error' => $e->getMessage()
             ]);
@@ -964,17 +1037,18 @@ class OrderController extends Controller
     public function downloadPdfBill($orderId)
     {
         try {
-            $order = Order::with(['customer', 'details.product'])
+            $order = Order::with(['customer', 'details.product', 'shop'])
                 ->findOrFail($orderId);
 
-            $user = auth()->user();
+            /** @var User|null $user */
+        $user = auth()->user();
             // Check shop access instead of user ownership
             if (!$user || !$user->canAccessShop($order->shop_id)) {
                 abort(404);
             }
 
             // Log download attempt
-            \Log::info('PDF download initiated', [
+            Log::info('PDF download initiated', [
                 'order_id' => $order->id,
                 'invoice_no' => $order->invoice_no,
                 'user_id' => $user->id
@@ -987,9 +1061,9 @@ class OrderController extends Controller
 
             // If no letterhead uploaded, generate PDF with upload message
             if (!$letterheadFile) {
-                \Log::info('No letterhead found - generating upload reminder PDF', ['order_id' => $order->id]);
+                Log::info('No letterhead found - generating upload reminder PDF', ['order_id' => $order->id]);
 
-                $pdf = PDF::loadView('orders.no-letterhead-message', [
+                $pdf = Pdf::loadView('orders.no-letterhead-message', [
                     'order' => $order,
                     'message' => 'Please upload a letterhead PDF to generate invoices with your company branding.'
                 ]);
@@ -1021,13 +1095,13 @@ class OrderController extends Controller
 
                             // Heuristic: only use preview image path if width >= 2000px or height >= 2000px
                             if ($width >= 2000 || $height >= 2000) {
-                                \Log::info('Preview image accepted for single-pass DomPDF (high-res)', ['order_id' => $order->id, 'preview' => $previewImage, 'width' => $width, 'height' => $height]);
+                                Log::info('Preview image accepted for single-pass DomPDF (high-res)', ['order_id' => $order->id, 'preview' => $previewImage, 'width' => $width, 'height' => $height]);
                                 return $this->generateStandardPdf($order, true);
                             }
 
-                            \Log::info('Preview image present but too small for single-pass DomPDF; prefer FPDI merge', ['order_id' => $order->id, 'preview' => $previewImage, 'width' => $width, 'height' => $height]);
+                            Log::info('Preview image present but too small for single-pass DomPDF; prefer FPDI merge', ['order_id' => $order->id, 'preview' => $previewImage, 'width' => $width, 'height' => $height]);
                         } catch (\Throwable $__previewEx) {
-                            \Log::warning('Error inspecting preview image; falling back to FPDI merge', ['order_id' => $order->id, 'error' => $__previewEx->getMessage()]);
+                            Log::warning('Error inspecting preview image; falling back to FPDI merge', ['order_id' => $order->id, 'error' => $__previewEx->getMessage()]);
                         }
                     }
 
@@ -1040,7 +1114,7 @@ class OrderController extends Controller
             return $this->generateStandardPdf($order);
 
         } catch (\Throwable $e) {
-            \Log::error('PDF download failed completely', [
+            Log::error('PDF download failed completely', [
                 'order_id' => $orderId,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1067,6 +1141,7 @@ class OrderController extends Controller
         $order = Order::with(['customer', 'details.product'])
             ->findOrFail($orderId);
 
+        /** @var User|null $user */
         $user = auth()->user();
         if (!$user || !$user->canAccessShop($order->shop_id)) {
             abort(404);
@@ -1085,7 +1160,7 @@ class OrderController extends Controller
         try {
             if ($letterheadType === 'pdf' && $letterheadFile) {
                 // Create content PDF
-                $contentPdf = PDF::loadView('orders.pdf-bill-overlay', [
+                $contentPdf = Pdf::loadView('orders.pdf-bill-overlay', [
                     'order' => $order,
                     'letterheadConfig' => $letterheadConfig,
                     'positionMap' => $this->buildPositionMap($letterheadConfig['positions'] ?? []),
@@ -1134,10 +1209,10 @@ class OrderController extends Controller
                     }
                 }
             } catch (\Throwable $__embedEx) {
-                \Log::warning('Failed to embed preview image for debug PDF generation', ['error' => $__embedEx->getMessage()]);
+                Log::warning('Failed to embed preview image for debug PDF generation', ['error' => $__embedEx->getMessage()]);
             }
 
-            $std = PDF::loadView('orders.pdf-bill', ['order' => $order, 'letterheadConfig' => $letterheadConfig]);
+            $std = Pdf::loadView('orders.pdf-bill', ['order' => $order, 'letterheadConfig' => $letterheadConfig]);
             $std->setPaper('A4', 'portrait');
             $tempStdPath = storage_path('app/temp_standard_' . $order->id . '.pdf');
             file_put_contents($tempStdPath, $std->output());
@@ -1146,7 +1221,7 @@ class OrderController extends Controller
 
             return response()->json(['success' => true, 'result' => $result]);
         } catch (\Exception $e) {
-            \Log::error('debugPdfInspect failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('debugPdfInspect failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             return response()->json(['success' => false, 'message' => $e->getMessage()]);
         }
     }
@@ -1194,7 +1269,7 @@ class OrderController extends Controller
             // Acquire a cache lock to avoid concurrent PDF generations
             $lock = cache()->lock('pdf_generation_lock', 300);
             if (! $lock->get()) {
-                \Log::warning('PDF generation rejected - lock active');
+                Log::warning('PDF generation rejected - lock active');
                 abort(503, 'PDF generation busy; please try again in a few seconds.');
             }
         }
@@ -1216,11 +1291,11 @@ class OrderController extends Controller
             }
         } catch (\Throwable $__embedEx) {
             // Non-fatal: if we can't embed the preview, fall back to existing behavior
-            \Log::warning('Failed to embed preview image for PDF generation', ['error' => $__embedEx->getMessage()]);
+            Log::warning('Failed to embed preview image for PDF generation', ['error' => $__embedEx->getMessage()]);
         }
 
         // Generate PDF using DomPDF (standard approach)
-        $pdf = PDF::loadView('orders.pdf-bill', [
+        $pdf = Pdf::loadView('orders.pdf-bill', [
             'order' => $order,
             'letterheadConfig' => $letterheadConfig,
         ]);
@@ -1263,7 +1338,7 @@ class OrderController extends Controller
                 'Expires' => '0',
             ]);
         } catch (\Throwable $pdfError) {
-            \Log::error('PDF download failed', [
+            Log::error('PDF download failed', [
                 'order_id' => $order->id,
                 'error' => $pdfError->getMessage(),
                 'trace' => $pdfError->getTraceAsString()
@@ -1282,12 +1357,12 @@ class OrderController extends Controller
         $this->ensureDiskSpaceOrFail(100);
         $lock = cache()->lock('pdf_generation_lock', 300);
         if (! $lock->get()) {
-            \Log::warning('PDF generation rejected - lock active', ['order_id' => $order->id]);
+            Log::warning('PDF generation rejected - lock active', ['order_id' => $order->id]);
             abort(503, 'PDF generation busy; please try again in a few seconds.');
         }
 
         try {
-            \Log::info('Starting generatePdfWithPdfLetterhead', ['order_id' => $order->id, 'letterheadFile' => $letterheadFile]);
+            Log::info('Starting generatePdfWithPdfLetterhead', ['order_id' => $order->id, 'letterheadFile' => $letterheadFile]);
             // Get letterhead configuration for toggles and positioning
             $letterheadConfig = $this->getLetterheadConfig();
 
@@ -1299,15 +1374,15 @@ class OrderController extends Controller
                 foreach ($order->details as $d) {
                     $detailNames[] = isset($d->product) ? ($d->product->name ?? 'unknown') : 'unknown';
                 }
-                \Log::info('Order details debug', ['order_id' => $order->id, 'details_count' => $detailsCount, 'detail_names' => $detailNames]);
+                Log::info('Order details debug', ['order_id' => $order->id, 'details_count' => $detailsCount, 'detail_names' => $detailNames]);
                 // Also log customer phone for debugging missing customer phone issue
                 try {
-                    \Log::info('Order customer debug', ['order_id' => $order->id, 'customer_phone' => $order->customer->phone ?? null]);
+                    Log::info('Order customer debug', ['order_id' => $order->id, 'customer_phone' => $order->customer->phone ?? null]);
                 } catch (\Throwable $__t) {
-                    \Log::warning('Failed to log customer phone', ['order_id' => $order->id, 'error' => $__t->getMessage()]);
+                    Log::warning('Failed to log customer phone', ['order_id' => $order->id, 'error' => $__t->getMessage()]);
                 }
             } catch (\Throwable $t) {
-                \Log::warning('Failed to log order details debug', ['order_id' => $order->id, 'error' => $t->getMessage()]);
+                Log::warning('Failed to log order details debug', ['order_id' => $order->id, 'error' => $t->getMessage()]);
             }
 
             // Render HTML for debug (save the HTML only in local env so we avoid heavy IO in other envs)
@@ -1323,17 +1398,17 @@ class OrderController extends Controller
                 if (app()->environment('local')) {
                     $debugHtmlPath = storage_path('app/debug_content_html_' . $order->id . '.html');
                     @file_put_contents($debugHtmlPath, $overlayHtml);
-                    \Log::info('Saved debug overlay HTML (local only)', ['path' => $debugHtmlPath, 'size' => file_exists($debugHtmlPath) ? filesize($debugHtmlPath) : 0]);
+                    Log::info('Saved debug overlay HTML (local only)', ['path' => $debugHtmlPath, 'size' => file_exists($debugHtmlPath) ? filesize($debugHtmlPath) : 0]);
                 }
             } catch (\Throwable $__debugHtmlEx) {
-                \Log::warning('Failed to render overlay HTML', ['order_id' => $order->id, 'error' => $__debugHtmlEx->getMessage()]);
+                Log::warning('Failed to render overlay HTML', ['order_id' => $order->id, 'error' => $__debugHtmlEx->getMessage()]);
                 $overlayHtml = null;
             }
 
             if (!empty($overlayHtml)) {
-                $contentPdf = PDF::loadHTML($overlayHtml);
+                $contentPdf = Pdf::loadHTML($overlayHtml);
             } else {
-                $contentPdf = PDF::loadView('orders.pdf-bill-overlay', [
+                $contentPdf = Pdf::loadView('orders.pdf-bill-overlay', [
                     'order' => $order,
                     'letterheadConfig' => $letterheadConfig,
                     'positionMap' => $this->buildPositionMap($letterheadConfig['positions'] ?? []),
@@ -1341,33 +1416,11 @@ class OrderController extends Controller
                 ]);
             }
 
-            // Attempt to size the overlay PDF to the native letterhead template size
-            // so the overlay is rendered 1:1 and no scaling is necessary during merge.
-            $paperSize = null;
-            try {
-                if (class_exists('setasign\\Fpdi\\Fpdi')) {
-                    $tmpFpdi = new Fpdi();
-                    $tmpFpdi->setSourceFile($letterheadPath);
-                    $tmpTemplate = $tmpFpdi->importPage(1);
-                    if (method_exists($tmpFpdi, 'getTemplateSize')) {
-                        $tpl = $tmpFpdi->getTemplateSize($tmpTemplate);
-                        if (!empty($tpl['width']) && !empty($tpl['height'])) {
-                            // Use the template width/height (these are PDF points)
-                            $paperSize = [(float)$tpl['width'], (float)$tpl['height']];
-                        }
-                    }
-                }
-            } catch (\Throwable $__tplEx) {
-                \Log::warning('Failed to read letterhead template size for 1:1 overlay, falling back to A4', ['error' => $__tplEx->getMessage()]);
-                $paperSize = null;
-            }
+            // Path to letterhead PDF
+            $letterheadPath = public_path('letterheads/' . $letterheadFile);
 
-            if ($paperSize) {
-                $contentPdf->setPaper($paperSize, 'portrait');
-            } else {
-                // Fallback to A4 to preserve previous behavior
-                $contentPdf->setPaper('A4', 'portrait');
-            }
+            // Always render invoice content on A4 so printed output is consistent.
+            $contentPdf->setPaper('A4', 'portrait');
 
             $contentPdf->setOptions([
                 'dpi' => 150, // Increased DPI to improve rasterized output quality
@@ -1382,27 +1435,25 @@ class OrderController extends Controller
             // Save content PDF to temporary file (debug copies only in local env)
             $tempContentPath = storage_path('app/temp_content_' . $order->id . '.pdf');
             file_put_contents($tempContentPath, $contentPdf->output());
-            \Log::info('Saved temp content PDF', ['path' => $tempContentPath, 'size' => File::exists($tempContentPath) ? File::size($tempContentPath) : 0]);
+            Log::info('Saved temp content PDF', ['path' => $tempContentPath, 'size' => File::exists($tempContentPath) ? File::size($tempContentPath) : 0]);
 
             if (app()->environment('local')) {
                 try {
                     $debugContentPdfPath = storage_path('app/debug_content_pdf_' . $order->id . '.pdf');
                     copy($tempContentPath, $debugContentPdfPath);
-                    \Log::info('Saved debug content PDF (local only)', ['path' => $debugContentPdfPath, 'size' => File::exists($debugContentPdfPath) ? File::size($debugContentPdfPath) : 0]);
+                    Log::info('Saved debug content PDF (local only)', ['path' => $debugContentPdfPath, 'size' => File::exists($debugContentPdfPath) ? File::size($debugContentPdfPath) : 0]);
                 } catch (\Throwable $__copyEx) {
-                    \Log::warning('Failed to save debug content PDF', ['order_id' => $order->id, 'error' => $__copyEx->getMessage()]);
+                    Log::warning('Failed to save debug content PDF', ['order_id' => $order->id, 'error' => $__copyEx->getMessage()]);
                 }
             }
 
-            // Path to letterhead PDF
-            $letterheadPath = public_path('letterheads/' . $letterheadFile);
-            \Log::info('Letterhead path computed', ['letterheadPath' => $letterheadPath, 'exists' => File::exists($letterheadPath), 'size' => File::exists($letterheadPath) ? File::size($letterheadPath) : 0]);
+            Log::info('Letterhead path computed', ['letterheadPath' => $letterheadPath, 'exists' => File::exists($letterheadPath), 'size' => File::exists($letterheadPath) ? File::size($letterheadPath) : 0]);
 
             // Safety guard: if the letterhead PDF is missing or unexpectedly large,
             // fall back to standard single-pass PDF generation to avoid long FPDI processing
             // that can hang the dev server or exhaust memory.
             if (!File::exists($letterheadPath)) {
-                \Log::warning('Letterhead PDF not found; falling back to standard PDF generation', ['path' => $letterheadPath]);
+                Log::warning('Letterhead PDF not found; falling back to standard PDF generation', ['path' => $letterheadPath]);
                 // We hold the lock; skip locking inside generateStandardPdf
                 return $this->generateStandardPdf($order, true);
             }
@@ -1415,7 +1466,7 @@ class OrderController extends Controller
 
             // If letterhead is larger than 5 MB, skip FPDI merge to avoid heavy memory/CPU usage.
             if ($letterheadSize !== null && $letterheadSize > 5 * 1024 * 1024) {
-                \Log::warning('Letterhead PDF is large; skipping FPDI merge to avoid resource exhaustion', ['path' => $letterheadPath, 'size' => $letterheadSize]);
+                Log::warning('Letterhead PDF is large; skipping FPDI merge to avoid resource exhaustion', ['path' => $letterheadPath, 'size' => $letterheadSize]);
                 return $this->generateStandardPdf($order, true);
             }
 
@@ -1424,32 +1475,10 @@ class OrderController extends Controller
             // (blurry) result. Always prefer FPDI merge for PDF letterheads to
             // preserve vector quality and avoid rasterization-induced blur.
 
-            // Try to merge PDFs using FPDI if available
-            // Prefer JS-based renderer/merger using Node (Puppeteer + pdf-lib) if present
-            try {
-                $nodeScript = base_path('scripts/render_and_merge.js');
-                if (File::exists($nodeScript)) {
-                    $appUrl = config('app.url') ?: (request()->getSchemeAndHttpHost() ?? 'http://localhost');
-                    $outPath = storage_path('app/debug_merged_order_' . $order->id . '_node.pdf');
-                    $mergeOffset = $letterheadConfig['merge_offset'] ?? ['x' => 0, 'y' => 0, 'unit' => 'mm'];
-                    $x = $mergeOffset['x'] ?? 0;
-                    $y = $mergeOffset['y'] ?? 0;
-                    $unit = $mergeOffset['unit'] ?? 'mm';
-                    $cmd = 'node ' . escapeshellarg($nodeScript) . ' ' . escapeshellarg($appUrl) . ' ' . escapeshellarg($order->id) . ' ' . escapeshellarg($letterheadPath) . ' ' . escapeshellarg($outPath) . ' ' . escapeshellarg($x) . ' ' . escapeshellarg($y) . ' ' . escapeshellarg($unit);
-                    exec($cmd . ' 2>&1', $out, $ret);
-                    if ($ret === 0 && File::exists($outPath)) {
-                        $mergedPdf = File::get($outPath);
-                    } else {
-                        \Log::warning('Node render_and_merge failed; falling back to FPDI', ['cmd' => $cmd, 'output' => $out, 'ret' => $ret]);
-                        $mergedPdf = null;
-                    }
-                } else {
-                    $mergedPdf = null;
-                }
-            } catch (\Throwable $__nodeEx) {
-                \Log::warning('Failed to run Node render_and_merge, falling back to FPDI', ['error' => $__nodeEx->getMessage()]);
-                $mergedPdf = null;
-            }
+            // Always use the server-rendered overlay PDF from this request context.
+            // Avoid Puppeteer route rendering here because it can lose auth/session state
+            // and produce an empty overlay in the downloaded invoice.
+            $mergedPdf = null;
 
             // If Node pipeline didn't produce a PDF, fall back to FPDI
             if (empty($mergedPdf) && class_exists('setasign\\Fpdi\\Fpdi')) {
@@ -1463,16 +1492,16 @@ class OrderController extends Controller
                         if (app()->environment('local')) {
                             $debugPath = storage_path('app/debug_merged_order_' . $order->id . '.pdf');
                             File::put($debugPath, $mergedPdf);
-                            \Log::info('Saved debug merged PDF (local only)', ['path' => $debugPath, 'size' => File::exists($debugPath) ? File::size($debugPath) : 0]);
+                            Log::info('Saved debug merged PDF (local only)', ['path' => $debugPath, 'size' => File::exists($debugPath) ? File::size($debugPath) : 0]);
                         }
                     } catch (\Throwable $t) {
-                        \Log::warning('Failed to save debug merged PDF', ['error' => $t->getMessage()]);
+                        Log::warning('Failed to save debug merged PDF', ['error' => $t->getMessage()]);
                     }
 
                     // Clean up temp file
                     if (File::exists($tempContentPath)) {
                         File::delete($tempContentPath);
-                        \Log::info('Temp content PDF deleted', ['path' => $tempContentPath]);
+                        Log::info('Temp content PDF deleted', ['path' => $tempContentPath]);
                     }
 
                     $filename = $order->invoice_no . ".pdf";
@@ -1482,7 +1511,7 @@ class OrderController extends Controller
                         ob_end_clean();
                     }
 
-                    \Log::info('Returning merged PDF for download', [
+                    Log::info('Returning merged PDF for download', [
                         'order_id' => $order->id,
                         'filename' => $filename,
                         'size' => strlen($mergedPdf)
@@ -1504,7 +1533,7 @@ class OrderController extends Controller
             }
         } catch (\Exception $e) {
             // Log error and fallback to standard generation (skip lock because we're in the lock context)
-            \Log::error('PDF merge failed: ' . $e->getMessage(), [
+            Log::error('PDF merge failed: ' . $e->getMessage(), [
                 'order_id' => $order->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -1515,7 +1544,7 @@ class OrderController extends Controller
                 try {
                     File::delete($tempContentPath);
                 } catch (\Throwable $cleanup) {
-                    \Log::warning('Failed to cleanup temp file', ['path' => $tempContentPath]);
+                    Log::warning('Failed to cleanup temp file', ['path' => $tempContentPath]);
                 }
             }
 
@@ -1525,73 +1554,51 @@ class OrderController extends Controller
             try {
                 $lock->release();
             } catch (\Throwable $__t) {
-                \Log::warning('Failed to release PDF generation lock', ['error' => $__t->getMessage()]);
+                Log::warning('Failed to release PDF generation lock', ['error' => $__t->getMessage()]);
             }
         }
     }
 
     private function mergePdfsWithFpdi($letterheadPath, $contentPath, $mergeOffset = ['x' => 0, 'y' => 0])
     {
-        // Try to use Node.js pdf-lib merger if available (faster and consistent with browser/Node tooling)
-        try {
-            $nodeScript = base_path('scripts/pdf_merge.js');
-            if (File::exists($nodeScript)) {
-                $outPath = storage_path('app/debug_merged_order_' . uniqid() . '.pdf');
-                $x = isset($mergeOffset['x']) ? $mergeOffset['x'] : 0;
-                $y = isset($mergeOffset['y']) ? $mergeOffset['y'] : 0;
-                $unit = isset($mergeOffset['unit']) ? $mergeOffset['unit'] : 'mm';
-                $cmd = 'node ' . escapeshellarg($nodeScript) . ' ' . escapeshellarg($letterheadPath) . ' ' . escapeshellarg($contentPath) . ' ' . escapeshellarg($outPath) . ' ' . escapeshellarg($x) . ' ' . escapeshellarg($y) . ' ' . escapeshellarg($unit);
-                // execute and wait
-                exec($cmd . ' 2>&1', $cmdOut, $ret);
-                if ($ret === 0 && File::exists($outPath)) {
-                    return File::get($outPath);
-                }
-                // otherwise fall through to FPDI
-                \Log::warning('Node pdf_merge.js failed or returned non-zero; falling back to FPDI', ['cmd' => $cmd, 'output' => $cmdOut, 'ret' => $ret]);
-            }
-        } catch (\Throwable $__nodeEx) {
-            \Log::warning('Failed to run node pdf_merge.js, falling back to FPDI', ['error' => $__nodeEx->getMessage()]);
-        }
+        // Use FPDI merge only for invoice reliability (avoids renderer differences in Node pipeline).
 
         $fpdi = new Fpdi();
         try {
             // Import letterhead PDF
-            \Log::info('FPDI: setSourceFile letterhead', ['path' => $letterheadPath]);
+            Log::info('FPDI: setSourceFile letterhead', ['path' => $letterheadPath]);
             $fpdi->setSourceFile($letterheadPath);
             $letterheadTemplate = $fpdi->importPage(1);
-            \Log::info('FPDI: imported letterhead template', ['template' => $letterheadTemplate]);
+            Log::info('FPDI: imported letterhead template', ['template' => $letterheadTemplate]);
 
-            // Import content PDF. Prefer the last page (DomPDF sometimes emits a
-            // small initial page and places the visible overlay on the last page).
-            \Log::info('FPDI: setSourceFile content', ['path' => $contentPath]);
+            // Import content PDF. Prefer the first page because invoice overlay
+            // content is rendered there. Choosing the last page can pick a blank
+            // page and produce letterhead-only output.
+            Log::info('FPDI: setSourceFile content', ['path' => $contentPath]);
             $contentPageCount = $fpdi->setSourceFile($contentPath);
-            \Log::info('FPDI: content page count', ['count' => $contentPageCount]);
+            Log::info('FPDI: content page count', ['count' => $contentPageCount]);
 
-            // Choose page: prefer last page, but fall back to 1 if something odd happens
-            $contentPageToImport = max(1, $contentPageCount);
+            // Choose page: prefer page 1 for invoice overlays.
+            $contentPageToImport = 1;
             try {
                 $contentTemplate = $fpdi->importPage($contentPageToImport);
-                \Log::info('FPDI: imported content template', ['template' => $contentTemplate, 'page' => $contentPageToImport]);
+                Log::info('FPDI: imported content template', ['template' => $contentTemplate, 'page' => $contentPageToImport]);
             } catch (\Throwable $__impEx) {
-                \Log::warning('FPDI: failed to import preferred content page, falling back to page 1', ['error' => $__impEx->getMessage()]);
-                $contentTemplate = $fpdi->importPage(1);
-                \Log::info('FPDI: imported content template fallback', ['template' => $contentTemplate, 'page' => 1]);
+                $fallbackPage = max(1, $contentPageCount);
+                Log::warning('FPDI: failed to import page 1, trying last page as fallback', ['error' => $__impEx->getMessage(), 'fallback_page' => $fallbackPage]);
+                $contentTemplate = $fpdi->importPage($fallbackPage);
+                Log::info('FPDI: imported content template fallback', ['template' => $contentTemplate, 'page' => $fallbackPage]);
             }
 
-            // Render everything onto a canvas matching the letterhead template's native size.
-            // This allows a 1:1 overlay without scaling mismatches.
+            // Render everything onto an A4 canvas for consistent invoice printing.
             $lhSize = null;
             if (method_exists($fpdi, 'getTemplateSize')) {
                 $lhSize = $fpdi->getTemplateSize($letterheadTemplate);
             }
 
-            // Default to A4 if template size is not available
+            // Fixed A4 size in PDF points.
             $canvasW = 595.28;
             $canvasH = 841.89;
-            if (!empty($lhSize) && !empty($lhSize['width']) && !empty($lhSize['height'])) {
-                $canvasW = (float)$lhSize['width'];
-                $canvasH = (float)$lhSize['height'];
-            }
 
             try {
                 // Add a page sized to the letterhead template (or A4 fallback)
@@ -1666,13 +1673,14 @@ class OrderController extends Controller
 
             return $fpdi->Output('S'); // Return as string
         } catch (\Exception $e) {
-            \Log::error('FPDI merge failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            Log::error('FPDI merge failed', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
             throw $e;
         }
     }
 
     private function getLetterheadConfig()
     {
+        /** @var User|null $user */
         $user = auth()->user();
         $activeShop = $user->getActiveShop();
 
@@ -1682,13 +1690,13 @@ class OrderController extends Controller
 
         $configPath = storage_path('app/letterhead_config_shop_' . $activeShop->id . '.json');
         if (File::exists($configPath)) {
-            $config = json_decode(File::get($configPath), true);
+            $config = json_decode(File::get($configPath), true) ?: [];
 
             // SECURITY: Validate that the letterhead file belongs to this shop
             if (!empty($config['letterhead_file'])) {
                 $expectedPrefix = 'letterhead_shop_' . $activeShop->id . '.';
                 if (strpos($config['letterhead_file'], $expectedPrefix) !== 0) {
-                    \Log::warning('Letterhead file mismatch - file does not belong to current shop', [
+                    Log::warning('Letterhead file mismatch - file does not belong to current shop', [
                         'shop_id' => $activeShop->id,
                         'letterhead_file' => $config['letterhead_file'],
                         'expected_prefix' => $expectedPrefix
@@ -1700,8 +1708,47 @@ class OrderController extends Controller
                 }
             }
 
-            // Merge with defaults to ensure all fields have values
-            return array_merge($this->getDefaultLetterheadConfig(), $config);
+            $defaults = $this->getDefaultLetterheadConfig();
+            $mergedConfig = array_merge($defaults, $config);
+
+            // Deep-merge required position fields by field name so missing/incomplete
+            // editor configs still render invoice/customer/items content.
+            $defaultPositions = $defaults['positions'] ?? [];
+            $configPositions = is_array($config['positions'] ?? null) ? $config['positions'] : [];
+
+            $defaultMap = [];
+            foreach ($defaultPositions as $position) {
+                if (!empty($position['field'])) {
+                    $defaultMap[$position['field']] = $position;
+                }
+            }
+
+            $configMap = [];
+            foreach ($configPositions as $position) {
+                if (!empty($position['field']) && is_array($position)) {
+                    $configMap[$position['field']] = $position;
+                }
+            }
+
+            $resolvedPositions = [];
+            foreach ($defaultMap as $field => $defaultPosition) {
+                if (isset($configMap[$field])) {
+                    $resolvedPositions[] = array_merge($defaultPosition, $configMap[$field]);
+                } else {
+                    $resolvedPositions[] = $defaultPosition;
+                }
+            }
+
+            // Preserve custom extra fields not in defaults (e.g., items_table, totals, warranty_section)
+            foreach ($configMap as $field => $position) {
+                if (!isset($defaultMap[$field])) {
+                    $resolvedPositions[] = $position;
+                }
+            }
+
+            $mergedConfig['positions'] = $resolvedPositions;
+
+            return $mergedConfig;
         }
         return $this->getDefaultLetterheadConfig();
     }
@@ -1813,6 +1860,7 @@ class OrderController extends Controller
      */
     public function saveLetterheadMergeOffset(\Illuminate\Http\Request $request)
     {
+        /** @var User|null $user */
         $user = auth()->user();
         if (!$user) {
             return response()->json(['success' => false, 'message' => 'Unauthenticated'], 401);
@@ -1845,7 +1893,7 @@ class OrderController extends Controller
             File::put($configPath, json_encode($config, JSON_PRETTY_PRINT));
             return response()->json(['success' => true, 'path' => $configPath, 'merge_offset' => $config['merge_offset']]);
         } catch (\Throwable $e) {
-            \Log::error('Failed to save letterhead config', ['error' => $e->getMessage()]);
+            Log::error('Failed to save letterhead config', ['error' => $e->getMessage()]);
             return response()->json(['success' => false, 'message' => 'Failed to save configuration'], 500);
         }
     }
@@ -1856,6 +1904,7 @@ class OrderController extends Controller
      */
     public function positionPreview(\Illuminate\Http\Request $request)
     {
+        /** @var User|null $user */
         $user = auth()->user();
         if (!$user) {
             abort(403);
@@ -1892,18 +1941,18 @@ class OrderController extends Controller
             $required = $minMb * 1024 * 1024;
 
             if ($free !== false && $free < $required) {
-                \Log::warning('Low disk space detected before PDF generation', ['free_bytes' => $free, 'required_bytes' => $required]);
+                Log::warning('Low disk space detected before PDF generation', ['free_bytes' => $free, 'required_bytes' => $required]);
                 // Attempt to free space by deleting debug/temp pdfs
                 $freed = $this->cleanupDebugFiles($required);
                 $freeAfter = @disk_free_space($storagePath) ?: @disk_free_space('/');
                 if ($freeAfter === false || $freeAfter < $required) {
-                    \Log::error('Insufficient disk space after cleanup', ['free_after' => $freeAfter, 'required' => $required, 'freed_bytes' => $freed]);
+                    Log::error('Insufficient disk space after cleanup', ['free_after' => $freeAfter, 'required' => $required, 'freed_bytes' => $freed]);
                     abort(503, 'Insufficient disk space to generate PDF. Please free some disk space and try again.');
                 }
             }
         } catch (\Throwable $e) {
             // If anything unexpected happens, log and proceed (do not block generation on cleanup failures)
-            \Log::warning('ensureDiskSpaceOrFail encountered an error', ['error' => $e->getMessage()]);
+            Log::warning('ensureDiskSpaceOrFail encountered an error', ['error' => $e->getMessage()]);
         }
     }
 
@@ -1943,9 +1992,9 @@ class OrderController extends Controller
                 @unlink($path);
                 $freed += $size;
                 $currentFree = @disk_free_space($storagePath) ?: @disk_free_space('/');
-                \Log::info('Deleted debug file to free space', ['path' => $path, 'size' => $size]);
+                Log::info('Deleted debug file to free space', ['path' => $path, 'size' => $size]);
             } catch (\Throwable $e) {
-                \Log::warning('Failed to delete debug file during cleanup', ['path' => $path, 'error' => $e->getMessage()]);
+                Log::warning('Failed to delete debug file during cleanup', ['path' => $path, 'error' => $e->getMessage()]);
             }
         }
 
@@ -1972,7 +2021,8 @@ class OrderController extends Controller
             $order = Order::with(['customer', 'details.product.warranty', 'creator', 'shop'])
                 ->findOrFail($orderId);
 
-            $user = auth()->user();
+            /** @var User|null $user */
+        $user = auth()->user();
             if (!$user || !$user->canAccessShop($order->shop_id)) {
                 abort(404);
             }
@@ -1998,7 +2048,7 @@ class OrderController extends Controller
                 'pos' => $pos,
             ]);
         } catch (\Exception $e) {
-            \Log::error('Receipt error: ' . $e->getMessage());
+            Log::error('Receipt error: ' . $e->getMessage());
             return response('<html><body><h1>Error Loading Receipt</h1><p>' . $e->getMessage() . '</p><pre>' . $e->getTraceAsString() . '</pre></body></html>', 500);
         }
     }
@@ -2008,7 +2058,9 @@ class OrderController extends Controller
      */
     public function getProducts(Request $request)
     {
-        $shopId = auth()->user()?->getActiveShop()?->id;
+        /** @var User|null $user */
+        $user = auth()->user();
+        $shopId = $user?->getActiveShop()?->id;
         $search = $request->get('search', '');
 
         $query = Product::with(['category', 'unit', 'warranty'])
