@@ -8,29 +8,28 @@ use App\Models\Customer;
 use App\Models\Order;
 use App\Models\OrderDetails;
 use App\Models\Product;
+use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
 class OrderImportController extends Controller
 {
+    private function authenticatedUser(): User
+    {
+        $user = auth()->user();
+        if (!$user instanceof User) {
+            abort(403, 'You must be authenticated to access imports.');
+        }
+
+        return $user;
+    }
+
     private function resolveImportView(string $page): string
     {
-        $shopType = active_shop_type() ?? 'tech';
-
-        $shopTypeView = "shop-types.{$shopType}.orders.import.{$page}";
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        $techView = "shop-types.tech.orders.import.{$page}";
-        if (view()->exists($techView)) {
-            return $techView;
-        }
-
         return "orders.import.{$page}";
     }
 
@@ -39,12 +38,13 @@ class OrderImportController extends Controller
      */
     public function manualForm()
     {
+        $user = $this->authenticatedUser();
+
         // Authorization check - staff cannot access data import
-        if (!auth()->user()->canAccessDataImport()) {
+        if (!$user->canAccessDataImport()) {
             abort(403, 'You do not have permission to access Data Import.');
         }
 
-        $user = auth()->user();
         $shop = $user->getActiveShop() ?: \App\Models\Shop::first();
 
         // Get invoice prefix and starting number from letterhead configuration
@@ -74,13 +74,15 @@ class OrderImportController extends Controller
      */
     public function storeManual(Request $request)
     {
+        $user = $this->authenticatedUser();
+
         // Authorization check - staff cannot import orders
-        if (!auth()->user()->canAccessDataImport()) {
+        if (!$user->canAccessDataImport()) {
             abort(403, 'You do not have permission to import orders.');
         }
 
         // Get starting invoice number from letterhead config
-        $shopId = Auth::user()->shop_id;
+        $shopId = $user->shop_id;
         $configPath = storage_path("app/letterhead_config_shop_{$shopId}.json");
         $invoiceStartingNumber = 1;
 
@@ -110,15 +112,15 @@ class OrderImportController extends Controller
         ]);
 
         // Additional validation for invoice number format and range
-        $validator->after(function ($validator) use ($request, $invoiceStartingNumber, $shopId) {
+        $validator->after(function ($validator) use ($request, $invoiceStartingNumber, $shopId, $user) {
             $invoiceNo = $request->invoice_no;
             // Get prefix from config or default
             $invoicePrefix = 'INV';
-            $shop = auth()->user()->getActiveShop() ?: \App\Models\Shop::first();
+            $shop = $user->getActiveShop() ?: \App\Models\Shop::first();
             if ($shop) {
                 $configPath = storage_path('app/letterhead_config_shop_' . $shop->id . '.json');
-                if (\File::exists($configPath)) {
-                    $config = json_decode(\File::get($configPath), true);
+                if (File::exists($configPath)) {
+                    $config = json_decode(File::get($configPath), true);
                     $invoicePrefix = $config['invoice_prefix'] ?? 'INV';
                 }
             }
@@ -157,7 +159,6 @@ class OrderImportController extends Controller
 
         DB::beginTransaction();
         try {
-            $user = auth()->user();
             $activeShop = $user->getActiveShop();
 
             // Calculate totals
@@ -194,7 +195,7 @@ class OrderImportController extends Controller
 
             $order = new Order();
             $order->customer_id = $customerId;
-            $order->order_date = $orderDate->format('Y-m-d');
+            $order->setAttribute('order_date', $orderDate->toDateString());
             // order_status field has been removed - all orders are treated as completed
             $order->total_products = $totalProducts;
             $order->sub_total = round($subTotal, 2);
@@ -203,11 +204,11 @@ class OrderImportController extends Controller
             $order->total = round($total, 2);
             // Store as prefix + 5-digit zero-padded string
             $invoicePrefix = 'INV';
-            $shop = auth()->user()->getActiveShop() ?: \App\Models\Shop::first();
+            $shop = $user->getActiveShop() ?: \App\Models\Shop::first();
             if ($shop) {
                 $configPath = storage_path('app/letterhead_config_shop_' . $shop->id . '.json');
-                if (\File::exists($configPath)) {
-                    $config = json_decode(\File::get($configPath), true);
+                if (File::exists($configPath)) {
+                    $config = json_decode(File::get($configPath), true);
                     $invoicePrefix = $config['invoice_prefix'] ?? 'INV';
                 }
             }
@@ -290,7 +291,7 @@ class OrderImportController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Order import failed', [
+            Log::error('Order import failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
@@ -307,8 +308,10 @@ class OrderImportController extends Controller
      */
     public function bulkForm()
     {
+        $user = $this->authenticatedUser();
+
         // Authorization check - staff cannot access bulk import
-        if (!auth()->user()->canAccessDataImport()) {
+        if (!$user->canAccessDataImport()) {
             abort(403, 'You do not have permission to access Bulk Import.');
         }
 
@@ -320,8 +323,10 @@ class OrderImportController extends Controller
      */
     public function downloadTemplate()
     {
+        $user = $this->authenticatedUser();
+
         // Authorization check - staff cannot download import templates
-        if (!auth()->user()->canAccessDataImport()) {
+        if (!$user->canAccessDataImport()) {
             abort(403, 'You do not have permission to download import templates.');
         }
 
@@ -382,8 +387,10 @@ class OrderImportController extends Controller
      */
     public function processBulk(Request $request)
     {
+        $user = $this->authenticatedUser();
+
         // Authorization check - staff cannot process bulk imports
-        if (!auth()->user()->canAccessDataImport()) {
+        if (!$user->canAccessDataImport()) {
             abort(403, 'You do not have permission to process bulk imports.');
         }
 
@@ -409,7 +416,6 @@ class OrderImportController extends Controller
 
             $imported = 0;
             $errors = [];
-            $user = auth()->user();
             $activeShop = $user->getActiveShop();
             $skipStockValidation = $request->skip_stock_validation ?? false;
 
@@ -545,7 +551,7 @@ class OrderImportController extends Controller
                     // Create order
                     $order = new Order();
                     $order->customer_id = $customer->id;
-                    $order->order_date = $orderDate->format('Y-m-d');
+                    $order->setAttribute('order_date', $orderDate->toDateString());
                     // order_status field has been removed - all orders are treated as completed
                     $order->total_products = $totalProducts;
                     $order->sub_total = round($subTotal, 2);
@@ -612,7 +618,7 @@ class OrderImportController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Bulk import failed', [
+            Log::error('Bulk import failed', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
