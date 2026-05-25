@@ -14,16 +14,6 @@ use PDF;
 
 class MonthlyBusinessReportController extends Controller
 {
-    private function businessReportView(string $view): string
-    {
-        $shopType = function_exists('active_shop_type') ? active_shop_type() : 'tech';
-        $shopView = "shop-types.{$shopType}.reports.business.{$view}";
-
-        return view()->exists($shopView)
-            ? $shopView
-            : "reports.business.{$view}";
-    }
-
     /**
      * Display monthly business report
      */
@@ -44,7 +34,7 @@ class MonthlyBusinessReportController extends Controller
         // Get report data for the shop
         $reportData = $this->generateShopReport($activeShop->id, $selectedMonth);
 
-        return view($this->businessReportView('monthly'), compact('reportData', 'selectedMonth', 'activeShop'));
+        return view('reports.business.monthly', compact('reportData', 'selectedMonth', 'activeShop'));
     }
 
     /**
@@ -240,7 +230,7 @@ class MonthlyBusinessReportController extends Controller
 
         $reportData = $this->generateShopReport($activeShop->id, $selectedMonth);
 
-        $pdf = PDF::loadView($this->businessReportView('monthly-pdf'), compact('reportData', 'selectedMonth', 'activeShop'));
+        $pdf = PDF::loadView('reports.business.monthly-pdf', compact('reportData', 'selectedMonth', 'activeShop'));
 
         return $pdf->download('business-report-' . $selectedMonth->format('Y-m') . '.pdf');
     }
@@ -268,6 +258,6 @@ class MonthlyBusinessReportController extends Controller
             ];
         }
 
-        return view($this->businessReportView('compare'), compact('shopsData', 'selectedMonth'));
+        return view('reports.business.compare', compact('shopsData', 'selectedMonth'));
     }
 }
