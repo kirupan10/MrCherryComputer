@@ -127,7 +127,7 @@ class VendorController extends Controller
             ]);
         }
 
-        return redirect()->route('vendors.show', $vendor->id)
+        return redirect(shop_route('vendors.show', $vendor))
             ->with('success', 'Supplier created successfully');
     }
 
@@ -217,7 +217,7 @@ class VendorController extends Controller
 
         $vendor->update($validated);
 
-        return redirect()->route('vendors.show', $vendor->id)
+        return redirect(shop_route('vendors.show', $vendor))
             ->with('success', 'Supplier updated successfully');
     }
 
@@ -243,7 +243,7 @@ class VendorController extends Controller
 
         $vendor->delete();
 
-        return redirect()->route('vendors.index')
+        return redirect(shop_route('vendors.index'))
             ->with('success', 'Supplier deleted successfully');
     }
 
