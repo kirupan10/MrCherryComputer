@@ -15,14 +15,26 @@ use Picqer\Barcode\BarcodeGeneratorHTML;
 use Picqer\Barcode\BarcodeGeneratorSVG;
 use App\Models\User;
 use App\Notifications\PriceUpdateNotification;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
+    private function currentUser(): User
+    {
+        $user = auth()->user();
+        if (!$user instanceof User) {
+            abort(403, 'You must be authenticated.');
+        }
+
+        return $user;
+    }
+
     public function index()
     {
         // Get active shop
-        $user = auth()->user();
-        $activeShop = $user ? $user->getActiveShop() : null;
+        $user = $this->currentUser();
+        $activeShop = $user->getActiveShop();
         $shopId = $activeShop ? $activeShop->id : null;
 
         // Check if there are ANY products for empty state detection
@@ -60,10 +72,6 @@ class ProductController extends Controller
 
     public function create(Request $request)
     {
-        $user = auth()->user();
-        $activeShop = $user ? $user->getActiveShop() : null;
-        $shopType = $activeShop && $activeShop->shop_type ? $activeShop->shop_type->value : 'tech';
-
         $categories = Category::all(['id', 'name', 'slug']);
         $units = Unit::all(['id', 'name', 'slug']);
         $warranties = \App\Models\Warranty::all(['id', 'name', 'duration', 'slug']);
@@ -76,10 +84,7 @@ class ProductController extends Controller
             $units = Unit::whereSlug($request->get('unit'))->get();
         }
 
-        $viewName = "shop-types.{$shopType}.products.create";
-        if (!view()->exists($viewName)) {
-            $viewName = 'shop-types.tech.products.create';
-        }
+        $viewName = 'products.create';
 
         return view($viewName, [
             'categories' => $categories,
@@ -145,7 +150,7 @@ class ProductController extends Controller
                 ->with('success', $message);
 
         } catch (\Exception $e) {
-            \Log::error('Product creation error: ' . $e->getMessage());
+            Log::error('Product creation error: ' . $e->getMessage());
 
             // Return JSON for AJAX requests
             if ($request->expectsJson() || $request->ajax()) {
@@ -189,7 +194,8 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        if (!auth()->user()->hasShopPermission('edit_product')) {
+        $user = $this->currentUser();
+        if (!$user->hasShopPermission('edit_product')) {
             abort(403, 'You do not have permission to edit products.');
         }
 
@@ -203,9 +209,19 @@ class ProductController extends Controller
 
     public function update(UpdateProductRequest $request, Product $product)
     {
-        if (!auth()->user()->hasShopPermission('edit_product')) {
+        $user = $this->currentUser();
+        if (!$user->hasShopPermission('edit_product')) {
             abort(403, 'You do not have permission to edit products.');
         }
+
+        $oldData = [
+            'name' => $product->name,
+            'code' => $product->code,
+            'selling_price' => $product->selling_price,
+            'buying_price' => $product->buying_price,
+            'category_id' => $product->category_id,
+            'unit_id' => $product->unit_id,
+        ];
 
         $data = $request->except('product_image');
 
@@ -215,7 +231,7 @@ class ProductController extends Controller
 
             // Delete old image if exists
             if ($product->product_image) {
-                \Storage::disk('public')->delete('products/' . $product->product_image);
+                Storage::disk('public')->delete('products/' . $product->product_image);
             }
 
             // Prepare new image
@@ -231,6 +247,22 @@ class ProductController extends Controller
             ]);
         }
 
+        AuditLog::log(
+            'update',
+            'Product',
+            $product->id,
+            "Product updated: {$product->name} ({$product->code})",
+            $oldData,
+            [
+                'name' => $product->name,
+                'code' => $product->code,
+                'selling_price' => $product->selling_price,
+                'buying_price' => $product->buying_price,
+                'category_id' => $product->category_id,
+                'unit_id' => $product->unit_id,
+            ]
+        );
+
         return redirect()
             ->route('products.index')
             ->with('success', 'Product has been updated!');
@@ -242,7 +274,8 @@ class ProductController extends Controller
             // Find the product by slug instead of ID
             $product = Product::where('slug', $productSlug)->firstOrFail();
 
-            if (!auth()->user()->hasShopPermission('add_stock')) {
+            $user = $this->currentUser();
+            if (!$user->hasShopPermission('add_stock')) {
                 if ($request->expectsJson() || $request->isJson() || $request->wantsJson()) {
                     return response()->json(['success' => false, 'message' => 'You do not have permission to add stock.'], 403);
                 }
@@ -262,6 +295,21 @@ class ProductController extends Controller
             // Use increment for atomic update (prevents race conditions)
             $product->increment('quantity', $addQuantity);
 
+            AuditLog::log(
+                'update',
+                'Product',
+                $product->id,
+                "Stock updated for product {$product->name} ({$product->code}): {$oldQuantity} -> {$newQuantity}",
+                [
+                    'quantity' => $oldQuantity,
+                ],
+                [
+                    'quantity' => $newQuantity,
+                    'added_quantity' => $addQuantity,
+                    'notes' => $validated['notes'] ?? null,
+                ]
+            );
+
             $message = "Stock updated successfully! Added {$addQuantity} units. New stock: {$newQuantity}";
 
             // Always return JSON for AJAX requests
@@ -279,7 +327,7 @@ class ProductController extends Controller
                 ->with('success', $message);
 
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            \Log::error('Product not found', [
+            Log::error('Product not found', [
                 'product_slug' => $productSlug ?? null,
                 'error' => $e->getMessage()
             ]);
@@ -305,7 +353,7 @@ class ProductController extends Controller
             return redirect()->back()->withErrors($e->errors());
 
         } catch (\Exception $e) {
-            \Log::error('Stock update failed', [
+            Log::error('Stock update failed', [
                 'product_slug' => $productSlug ?? null,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
@@ -327,6 +375,7 @@ class ProductController extends Controller
         try {
             $product = Product::where('slug', $productSlug)->firstOrFail();
 
+            /** @var User|null $user */
             $user = auth()->user();
             $canSeeBuying = $user && !$user->isEmployee();
 
@@ -416,7 +465,7 @@ class ProductController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Throwable $e) {
-            \Log::error('Quick price update failed', [
+            Log::error('Quick price update failed', [
                 'product_slug' => $productSlug,
                 'error' => $e->getMessage(),
             ]);
@@ -438,7 +487,7 @@ class ProductController extends Controller
 
          */
         if ($product->product_image) {
-            \Storage::disk('public')->delete('products/' . $product->product_image);
+            Storage::disk('public')->delete('products/' . $product->product_image);
         }
 
         $product->delete();
