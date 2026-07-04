@@ -19,19 +19,6 @@ class ProfileController extends Controller
         $user = $request->user();
         $shop = $user->getActiveShop();
 
-        // If user has a shop with a specific shop type, use shop-type specific view
-        if ($shop && $shop->shop_type) {
-            $shopType = shop_type_route_key($shop->shop_type->value);
-            $shopTypeView = "shop-types.{$shopType}.profile.user-profile";
-
-            if (view()->exists($shopTypeView)) {
-                return view($shopTypeView, [
-                    'user' => $user,
-                    'shop' => $shop,
-                ]);
-            }
-        }
-
         // Fallback to default profile view
         return view('profile.user-profile', [
             'user' => $user,
@@ -158,12 +145,12 @@ class ProfileController extends Controller
                 User::where('id', $user->id)->update(['photo' => $fileName]);
 
                 return redirect()
-                    ->route('profile.edit')
+                    ->to(shop_route('profile.edit'))
                     ->with('success', 'Profile photo has been updated!');
             }
 
             return redirect()
-                ->route('profile.edit')
+                ->to(shop_route('profile.edit'))
                 ->with('error', 'No photo file selected.');
         }
 
@@ -178,7 +165,7 @@ class ProfileController extends Controller
         User::where('id', $user->id)->update($validatedData);
 
         return redirect()
-            ->route('profile.edit')
+            ->to(shop_route('profile.edit'))
             ->with('success', 'Profile has been updated!');
     }
 
@@ -186,19 +173,6 @@ class ProfileController extends Controller
     {
         $user = $request->user();
         $shop = $user->getActiveShop();
-
-        // If user has a shop with a specific shop type, use shop-type specific view
-        if ($shop && $shop->shop_type) {
-            $shopType = shop_type_route_key($shop->shop_type->value);
-            $shopTypeView = "shop-types.{$shopType}.profile.settings";
-
-            if (view()->exists($shopTypeView)) {
-                return view($shopTypeView, [
-                    'user' => $user,
-                    'shop' => $shop,
-                ]);
-            }
-        }
 
         return view('profile.settings', [
             'user' => $user,
@@ -214,24 +188,11 @@ class ProfileController extends Controller
             return redirect()->to(shop_route('settings'));
         }
 
-        $shopType = shop_type_route_key($shop->shop_type->value);
-
-        // Generic fallback: check for shop-type-specific view, else use shared view
-        $shopTypeView = "shop-types.{$shopType}.profile.features";
-        $layout = "shop-types.{$shopType}.layouts.nexora";
-        if (view()->exists($shopTypeView)) {
-            return view($shopTypeView, [
-                'user' => $user,
-                'shop' => $shop,
-                'shopSettings' => $shop->shop_settings ?? [],
-            ]);
-        }
-
-        return view('layouts.profile.features', [
+        return view('profile.features', [
             'user' => $user,
             'shop' => $shop,
             'shopSettings' => $shop->shop_settings ?? [],
-            'layout' => $layout,
+            'layout' => 'layouts.nexora',
         ]);
     }
 
