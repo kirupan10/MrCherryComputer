@@ -184,7 +184,7 @@ class BusinessTransactionController extends Controller
             ]);
         }
 
-        return redirect()->route('business-transactions.index')
+        return redirect()->to(shop_route('business-transactions.index'))
             ->with('success', 'Transaction created successfully.');
     }
 
@@ -294,7 +294,7 @@ class BusinessTransactionController extends Controller
 
         $transaction->update($validated);
 
-        return redirect()->route('business-transactions.show', $transaction)
+        return redirect()->to(shop_route('business-transactions.show', $transaction))
             ->with('success', 'Transaction updated successfully.');
     }
 
@@ -317,7 +317,7 @@ class BusinessTransactionController extends Controller
 
         // Only shop owners can delete transactions
         if (!$this->currentUser()->isShopOwner() && !$this->currentUser()->isAdmin()) {
-            return redirect()->route('business-transactions.show', $transaction)
+            return redirect()->to(shop_route('business-transactions.show', $transaction))
                 ->with('error', 'Only shop owners can delete transactions.');
         }
 
@@ -328,7 +328,7 @@ class BusinessTransactionController extends Controller
 
         $transaction->delete();
 
-        return redirect()->route('business-transactions.index')
+        return redirect()->to(shop_route('business-transactions.index'))
             ->with('success', 'Transaction deleted successfully.');
     }
 }
