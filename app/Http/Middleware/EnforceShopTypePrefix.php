@@ -15,7 +15,10 @@ class EnforceShopTypePrefix
      */
     private function shopPrefixSegment(string $shopType): string
     {
-        return $shopType;
+        return match ($shopType) {
+            'tech' => '',
+            default => $shopType,
+        };
     }
 
     /**
@@ -56,6 +59,11 @@ class EnforceShopTypePrefix
 
         $shopType = shop_type_route_key($shop->shop_type->value);
         $shopPrefix = $this->shopPrefixSegment($shopType);
+
+        // When shop routes are configured at root level, no prefix redirects are needed.
+        if ($shopPrefix === '') {
+            return $next($request);
+        }
 
         if (!$currentRouteName) {
             $fallbackRedirect = $this->fallbackPathRedirect($request, $shopPrefix);
