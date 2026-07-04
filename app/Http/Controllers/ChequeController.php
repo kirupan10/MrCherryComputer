@@ -168,7 +168,7 @@ class ChequeController extends Controller
             'status' => 'pending',
         ]);
 
-        return redirect()->route('cheques.show', $cheque->id)
+        return redirect(shop_route('cheques.show', $cheque))
                         ->with('success', 'Cheque recorded successfully');
     }
 
@@ -245,7 +245,7 @@ class ChequeController extends Controller
 
         $cheque->update($validated);
 
-        return redirect()->route('cheques.show', $cheque->id)
+        return redirect(shop_route('cheques.show', $cheque))
                         ->with('success', 'Cheque updated successfully');
     }
 
@@ -266,7 +266,7 @@ class ChequeController extends Controller
 
         $cheque->delete();
 
-        return redirect()->route('cheques.index')
+        return redirect(shop_route('cheques.index'))
                         ->with('success', 'Cheque deleted successfully');
     }
 
