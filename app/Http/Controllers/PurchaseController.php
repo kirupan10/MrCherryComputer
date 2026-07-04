@@ -16,17 +16,6 @@ class PurchaseController extends Controller
 {
     private function resolveView(string $page): string
     {
-        $shopType = active_shop_type() ?? 'tech';
-        $shopTypeView = "shop-types.{$shopType}.credit-purchases.{$page}";
-        if (view()->exists($shopTypeView)) {
-            return $shopTypeView;
-        }
-
-        $techView = "shop-types.tech.credit-purchases.{$page}";
-        if (view()->exists($techView)) {
-            return $techView;
-        }
-
         return "credit-purchases.{$page}";
     }
 
