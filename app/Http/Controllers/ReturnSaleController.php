@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use App\Models\ReturnSale;
 use App\Models\ReturnSaleItem;
+use App\Services\KpiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -39,7 +40,7 @@ class ReturnSaleController extends Controller
             return $return->items->sum('quantity');
         });
 
-        return view($this->returnView('index'), [
+        return view('returns.index', [
             'returnsByMonth' => $returnsByMonth,
             'totalReturns' => $totalReturns,
             'totalRecords' => $totalRecords,
@@ -53,7 +54,7 @@ class ReturnSaleController extends Controller
     public function show(ReturnSale $returnSale)
     {
         $returnSale->load(['customer', 'order', 'items.product', 'createdBy']);
-        return view($this->returnView('show'), compact('returnSale'));
+        return view('returns.show', compact('returnSale'));
     }
 
     /**
@@ -76,13 +77,20 @@ class ReturnSaleController extends Controller
      */
     public function store(Request $request)
     {
+        // Detect shop type to use the correct product model and table
+        $shop = $request->user()->getActiveShop();
+        $isTechShop = $shop && $shop->shop_type && $shop->shop_type->value === 'tech';
+        $productTable = $isTechShop
+            ? (new \App\ShopTypes\Tech\Models\TechProduct)->getTable()
+            : 'products';
+
         $data = $request->validate([
             'order_id' => 'nullable|exists:orders,id',
             'customer_id' => 'nullable|exists:customers,id',
             'return_date' => 'nullable|date',
             'notes' => 'nullable|string',
             'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
+            'items.*.product_id' => "required|exists:{$productTable},id",
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.serial_number' => 'nullable|string',
         ]);
@@ -102,14 +110,16 @@ class ReturnSaleController extends Controller
             ]);
 
             foreach ($data['items'] as $item) {
-                $product = Product::findOrFail($item['product_id']);
+                $product = $isTechShop
+                    ? \App\ShopTypes\Tech\Models\TechProduct::findOrFail($item['product_id'])
+                    : Product::findOrFail($item['product_id']);
                 $qty = (int)$item['quantity'];
 
-                // Determine unit cost (use product selling price), convert to cents
-                $unitcost = (int)round($product->selling_price * 100);
+                // Determine unit cost from product selling price (prices stored as plain integers, not cents)
+                $unitcost = (int)round($product->selling_price);
                 $lineTotal = $unitcost * $qty;
 
-                // Create return item (triggers will insert audit rows; stored procedure will adjust product quantities)
+                // Create return item
                 $serialNumber = $item['serial_number'] ?? null;
                 ReturnSaleItem::create([
                     'return_sale_id' => $returnSale->id,
@@ -120,6 +130,12 @@ class ReturnSaleController extends Controller
                     'serial_number' => $serialNumber ? strtoupper($serialNumber) : null,
                 ]);
 
+                // Tech products are stored in a different table, so increment stock directly here.
+                if ($isTechShop) {
+                    $product->quantity = round(((float)($product->quantity ?? 0)) + $qty, 3);
+                    $product->save();
+                }
+
                 $subTotal += $lineTotal;
                 $total += $lineTotal; // future: taxes/fees
             }
@@ -128,20 +144,20 @@ class ReturnSaleController extends Controller
             $returnSale->total = $total;
             $returnSale->save();
 
-            // Apply product quantity adjustments using StockService
-            $stockService = app(\App\Services\StockService::class);
-            $stockService->adjustStockAfterReturn($returnSale->id);
+            // Keep existing stock adjustment flow for non-tech shops.
+            if (!$isTechShop) {
+                $stockService = app(\App\Services\StockService::class);
+                $stockService->adjustStockAfterReturn($returnSale->id);
+            }
 
             DB::commit();
 
-            // If the client expects JSON (API or AJAX), return JSON. Otherwise redirect
-            // to the return edit/view page so the user can see the created record in the UI.
             if ($request->wantsJson() || $request->ajax()) {
                 return response()->json(['status' => 'ok', 'return_sale_id' => $returnSale->id], 201);
             }
 
             return redirect()
-                ->route('returns.edit', $returnSale)
+                ->to(shop_route('returns.edit', $returnSale))
                 ->with('success', 'Return recorded successfully');
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -156,8 +172,20 @@ class ReturnSaleController extends Controller
     {
         $shopId = $request->user()->shop_id ?? null;
 
+        // Detect shop type to use the correct product model
+        $shop = $request->user()->getActiveShop();
+        $isTechShop = $shop && $shop->shop_type && $shop->shop_type->value === 'tech';
+
         // Products for the selection
-        $products = Product::orderBy('name')->get();
+        if ($isTechShop) {
+            $products = \App\ShopTypes\Tech\Models\TechProduct::where('shop_id', $shopId)
+                ->orderBy('name')->get();
+        } else {
+            $products = Product::orderBy('name')->get();
+        }
+
+        // Customers for the dropdown
+        $customers = \App\Models\Customer::where('shop_id', $shopId)->orderBy('name')->get();
 
         // Base query for returns scoped to shop
         $base = ReturnSale::query();
@@ -166,10 +194,10 @@ class ReturnSaleController extends Controller
         }
 
     // KPIs - use DB-side stored procedure via KpiService for faster reads
-    $kpiService = new \App\Services\KpiService();
+    $kpiService = new KpiService();
     $returnKpis = $kpiService->getReturnKpisByShop($shopId);
 
-    $totalReturns = $returnKpis->total_returns ?? 0; // in cents
+    $totalReturns = $returnKpis->total_returns ?? 0;
     // last_30_days_total as a proxied month/period number
     $monthTotal = $returnKpis->last_30_days_total ?? 0;
     $weekTotal = 0; // week-level cached proc not available; keep 0 or compute if necessary
@@ -181,13 +209,14 @@ class ReturnSaleController extends Controller
                 $q->where('shop_id', $shopId);
             });
         }
-    $itemsReturned = $returnKpis->items_returned ?? $itemsQuery->sum('quantity');
+    $itemsReturned = (int) round((float) ($returnKpis->items_returned ?? $itemsQuery->sum('quantity')));
 
         // Recent returns
         $recent = (clone $base)->latest('return_date')->latest()->limit(10)->with('items.product')->get();
 
-        return view($this->returnView('create'), [
+        return view('returns.create', [
             'products' => $products,
+            'customers' => $customers,
             'totalReturns' => $totalReturns,
             'monthTotal' => $monthTotal,
             'weekTotal' => $weekTotal,
@@ -203,7 +232,7 @@ class ReturnSaleController extends Controller
     {
         // Load items for display
         $returnSale->load('items.product');
-        return view($this->returnView('edit'), compact('returnSale'));
+        return view('returns.edit', compact('returnSale'));
     }
 
     /**
@@ -222,15 +251,5 @@ class ReturnSaleController extends Controller
         ]);
 
         return redirect()->route('returns.edit', $returnSale)->with('status', 'Return updated');
-    }
-
-    private function returnView(string $view): string
-    {
-        $shopType = function_exists('active_shop_type') ? active_shop_type() : 'tech';
-        $shopView = "shop-types.{$shopType}.returns.{$view}";
-
-        return view()->exists($shopView)
-            ? $shopView
-            : "returns.{$view}";
     }
 }
