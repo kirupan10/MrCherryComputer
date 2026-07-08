@@ -32,7 +32,6 @@ class VendorController extends Controller
     {
         $shopId = $this->currentUser()->shop_id;
         $search = $request->get('search');
-        $purchaseStatus = $request->get('purchase_status', 'pending'); // Default to pending
 
         $query = Vendor::where('shop_id', $shopId)->with('creator');
 
@@ -45,16 +44,6 @@ class VendorController extends Controller
                   ->orWhere('email', 'like', "%{$search}%");
             });
         }
-
-        // Filter by purchase status based on outstanding_balance
-        if ($purchaseStatus === 'pending') {
-            // Show only vendors with pending balance (outstanding_balance > 0)
-            $query->where('outstanding_balance', '>', 0);
-        } elseif ($purchaseStatus === 'completed') {
-            // Show only vendors with no outstanding balance (outstanding_balance = 0)
-            $query->where('outstanding_balance', '=', 0);
-        }
-        // If 'all' is selected, show all vendors without balance filter
 
         // Order by pending balance first, then by name
         $vendors = $query->orderByRaw('CASE WHEN outstanding_balance > 0 THEN 0 ELSE 1 END')
@@ -69,7 +58,7 @@ class VendorController extends Controller
             'total_outstanding' => Vendor::where('shop_id', $shopId)->sum('outstanding_balance'),
         ];
 
-        return view($this->resolveView('index'), compact('vendors', 'stats', 'search', 'purchaseStatus'));
+        return view($this->resolveView('index'), compact('vendors', 'stats', 'search'));
     }
 
     /**
