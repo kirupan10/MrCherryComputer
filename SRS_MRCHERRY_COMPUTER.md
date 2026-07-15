@@ -1,699 +1,822 @@
-# Software Requirements Specification
+# Software Requirements Specification (SRS)
 
-## MrCherry Computer POS System
+## MrCherry Computers POS System
 
-Business Inventory, Sales, and Point-of-Sale Platform
+### Group Project (TICT3123) - 2026
 
-Prepared for: MrCherryComputers  
-Prepared by: [Your Name / Group Name]  
-Date: May 2026
+---
+
+**Department of Information and Communication Technology**  
+**Faculty of Technology**  
+**University of Ruhuna**  
+
+**Title of the Project:** MrCherry Computers Point-of-Sale (POS) & Inventory System  
+**Document:** Software Requirements Specification  
+**Group ID:** FOT-ICT-2026-GP12  
+
+**Submitted by:**  
+1. TG/2022/1001 – K. P. A. N. Siriwardena  
+2. TG/2022/1002 – A. B. C. Perera  
+3. TG/2022/1003 – M. N. O. Silva  
+
+**Submitted to:**  
+(Supervisor’s signature)  
+…………………………..  
+Dr. T. D. Gamage  
+Department of Information and Communication Technology  
+
+**Date of Submission:** July 4, 2026  
 
 ---
 
 ## Table of Contents
 
-1. Introduction  
-   1.1 Purpose  
-   1.2 Scope  
-   1.3 Definitions, Acronyms, and Abbreviations  
-   1.4 References  
-2. Overall Description  
-   2.1 Product Perspective  
-   2.2 Product Functions  
-   2.3 Users of the System  
-   2.4 Operating Environment  
-3. System Features / Functional Requirements  
-4. Non-Functional Requirements  
-5. System Architecture  
-6. External Interface Requirements  
-7. Other Requirements  
-8. Route / API Reference  
-9. Appendices  
+* **Revision History**
+* **1. Introduction**
+  * 1.1 Purpose
+  * 1.2 Document Conventions
+  * 1.3 Intended Audience and Reading Suggestions
+  * 1.4 Product Scope
+  * 1.5 References
+* **2. Overall Description**
+  * 2.1 Product Perspective
+  * 2.2 Product Functions
+  * 2.3 User Classes and Characteristics
+  * 2.4 Operating Environment
+  * 2.5 Design and Implementation Constraints
+  * 2.6 Project Documentation
+  * 2.7 User Documentation
+  * 2.8 Assumptions and Dependencies
+* **3. External Interface Requirements**
+  * 3.1 User Interfaces
+  * 3.2 Hardware Interfaces
+  * 3.3 Software Interfaces
+  * 3.4 Communications Interfaces
+* **4. System Features**
+  * 4.1 System Feature 1: User Authentication and Profile Management
+  * 4.2 System Feature 2: Product and Inventory Management
+  * 4.3 System Feature 3: POS Sales and Invoice Generation
+  * 4.4 System Feature 4: Return and Refund Management
+  * 4.5 System Feature 5: Expense Management and Approval
+  * 4.6 System Feature 6: Business Reporting and Analytics
+* **5. Other Nonfunctional Requirements**
+  * 5.1 Performance Requirements
+  * 5.2 Safety Requirements
+  * 5.3 Security Requirements
+  * 5.4 Software Quality Attributes
+  * 5.5 Business Rules
+* **6. Other Requirements**
+* **Appendix A: Glossary**
+* **Appendix B: Analysis Models**
+* **Appendix C: To Be Determined List**
+
+---
+
+## Revision History
+
+**Table 1.1: Document Revision History**
+
+| Name | Date | Reason For Changes | Version |
+| --- | --- | --- | --- |
+| Group 12 | May 12, 2026 | Initial draft containing core modules. | 0.1.0 |
+| Group 12 | June 20, 2026 | Completed database mappings and RBAC specifications. | 0.8.0 |
+| Group 12 | July 04, 2026 | Finalized Mermaid diagrams, NFRs, and formatted Cover Page. | 1.0.0 |
 
 ---
 
 ## 1. Introduction
 
 ### 1.1 Purpose
+This Software Requirements Specification (SRS) document details the functional and non-functional requirements for the **MrCherry Computers POS System** (Version 1.0.0). The system is a web-based, single-shop point-of-sale, stock control, customer relationship, expense tracking, product returns, and financial reporting platform designed to replace legacy manual billing systems. This document provides a shared reference for software developers, testers, project managers, and supervisors, ensuring alignment with the project goals.
 
-This Software Requirements Specification document describes the functional and non-functional requirements of the MrCherry Computer POS System. The system is a web-based point-of-sale, inventory, customer, expense, return, and reporting platform designed for a computer retail shop. This document provides a clear understanding of the project for developers, supervisors, testers, and stakeholders.
+### 1.2 Document Conventions
+This document is prepared following the **IEEE Std 830-1998** guidelines. The styling conventions applied include:
+* **Font Family:** Times New Roman (body text formatted to 12 pt, 1.5 line spacing).
+* **Headings:** Bold hierarchy with default template spacing.
+* **Emphasis:** Standard formatting for database tables, keys, and specific code symbols.
+* **Requirement Priority:** Detailed functional requirements inherit the priority level of their parent feature areas. Every requirement uses a unique tracking ID (e.g., `FR-POS-01`).
 
-### 1.2 Scope
+### 1.3 Intended Audience and Reading Suggestions
+The primary readers of this document are:
+* **Academic Supervisors/Examiners:** Focus on structural alignment (Chapters 1-6) and analysis models (Appendix B).
+* **Software Developers:** Prioritize System Features (Chapter 4), External Interfaces (Chapter 3), and Database Mappings (Appendix B).
+* **System Testers:** Focus on detailed requirement IDs in Chapter 4 and Non-Functional Attributes (Chapter 5) to draft test cases.
+* **End Users (Managers/Cashiers):** Focus on overall functions (Section 2.2) and operational limitations (Section 5.5).
 
-The MrCherry Computer POS System supports day-to-day retail business operations for a computer shop. It allows authorized users to manage products, categories, units, customers, stock, sales, returns, expenses, invoices, and business reports.
+### 1.4 Product Scope
+The MrCherry Computers POS System is a localized business platform designed to centralize and automate retail processes. The system provides real-time control over:
+* Role-based user authentication (Admin, Manager, Cashier).
+* Category, unit, and product data entry with automated barcode/SKU integration.
+* Dynamic POS cashier screen containing product search, cart operations, custom discounts, and dual payment support.
+* Print document rendering (A4 PDF & thermal receipts).
+* Returns processing with automatic stock levels recalculation.
+* Operating expense logging and multi-level approvals.
+* Interactive analytics reports (daily/monthly sales, stock movement tracking, and net profit-loss calculation).
 
-The main scope includes:
-
-- User authentication and role-based access control
-- Admin, Manager, and Cashier user roles
-- Product, category, and unit management
-- Stock management with low-stock alerts
-- POS sales processing
-- Customer management
-- Invoice, PDF, and thermal receipt generation
-- Return and refund handling
-- Expense tracking and approval
-- Business reports and analytics
-- Profile and password management
-- Single-shop business operation support
-
-### 1.3 Definitions, Acronyms, and Abbreviations
-
-| Term | Description |
-| --- | --- |
-| POS | Point of Sale |
-| SRS | Software Requirements Specification |
-| RBAC | Role-Based Access Control |
-| Admin | Main system user with full access |
-| Manager | User who manages products, inventory, sales, returns, expenses, and reports |
-| Cashier | User who processes sales and views limited records |
-| SKU | Stock Keeping Unit |
-| PDF | Portable Document Format |
-| CRUD | Create, Read, Update, Delete |
-| DB | Database |
-| UI | User Interface |
-
-### 1.4 References
-
-1. Laravel Documentation: https://laravel.com/docs  
-2. MySQL Documentation: https://dev.mysql.com/doc/  
-3. Tailwind CSS Documentation: https://tailwindcss.com/docs  
-4. Laravel Breeze Documentation: https://laravel.com/docs/starter-kits  
-5. DomPDF Laravel Package: https://github.com/barryvdh/laravel-dompdf  
-6. MrCherry Computer project repository and project documentation files
+### 1.5 References
+1. *Laravel 11.x MVC Framework Documentation:* https://laravel.com/docs/11.x
+2. *MySQL 8.0 Reference Manual:* https://dev.mysql.com/doc/refman/8.0/en/
+3. *Spatie Laravel Permission Package v6:* https://spatie.be/docs/laravel-permission/v6/
+4. *IEEE Std 830-1998 IEEE Recommended Practice for Software Requirements Specifications.*
 
 ---
 
 ## 2. Overall Description
 
 ### 2.1 Product Perspective
+The system is built as a self-contained, client-server web application utilizing the Laravel framework and a relational MySQL database. It integrates with peripheral point-of-sale hardware (barcode readers, A4 printers, thermal slip printers) through the browser.
 
-The MrCherry Computer POS System is a web-based application built using a client-server architecture. The application is developed using Laravel, Blade templates, MySQL, JavaScript, Alpine.js, Livewire, and Tailwind CSS.
-
-The system provides a central platform for managing retail shop operations. It replaces manual billing, manual stock books, and scattered sales records with a computerized solution.
-
-| Component | Technology | Responsibility |
-| --- | --- | --- |
-| Frontend | Blade, Tailwind CSS, Alpine.js, Livewire | User interface, forms, tables, dashboards, POS screen |
-| Backend | Laravel 10 | Authentication, authorization, business logic, routing, validation |
-| Database | MySQL | Store users, products, stock, customers, sales, payments, returns, and expenses |
-| Authentication | Laravel Breeze / Session Auth | Secure login, logout, password reset |
-| PDF / Print | DomPDF, browser print, thermal invoice views | Invoice and receipt generation |
-| Reporting | Laravel controllers, queries, export libraries | Sales, inventory, expense, and profit/loss reports |
+```
++-------------------------------------------------------------+
+|                      Presentation Tier                      |
+| (Web Browser: Blade Templates, Alpine.js, Tailwind CSS, JS)  |
++------------------------------+------------------------------+
+                               | HTTPS / HTTP
+                               ▼
++-------------------------------------------------------------+
+|                      Application Tier                       |
+| (Laravel 11 Controllers, Services, Spatie Middleware, Auth) |
++------------------------------+------------------------------+
+                               | Eloquent ORM
+                               ▼
++-------------------------------------------------------------+
+|                          Data Tier                          |
+|                     (MySQL 8.0 Database)                    |
++-------------------------------------------------------------+
+```
+**Figure 2.1: Three-Tier System Architecture**
 
 ### 2.2 Product Functions
+The main functions of the system are grouped as follows:
 
-The major functions of the system are:
+* **Authentication & Authorization:** Secure login/logout, password reset, and role-based access control (RBAC).
+* **Master Data Setup:** Cataloging of inventory items, measurement units, and product categories.
+* **Core POS Transaction Engine:** Real-time search of products, transaction holding, tax calculation, discount limits, and payment processing.
+* **Inventory Control:** Automatic stock deduction, manual audit trail logging, and low-stock notification triggers.
+* **Finance & Accounting:** Logging business expenses, categorization, and tracking approval workflows.
+* **Returns & Adjustments:** Generating refund entries and restoring stock values.
+* **Business Intelligence:** Interactive sales summaries, performance charts, and downloadable PDF reports.
 
-- User login, logout, registration, and password reset
-- Role-based dashboards
-- User and role management
-- Category and unit management
-- Product creation, update, deletion, and search
-- Barcode/SKU-based product lookup
-- Stock updates and stock movement history
-- Low-stock alert generation
-- Customer record management
-- POS cart and checkout
-- Payment processing and change calculation
-- Sales history and invoice generation
-- PDF invoice download and receipt printing
-- Return processing and stock restoration
-- Expense creation, approval, rejection, and tracking
-- Reports for sales, inventory, stock movement, expenses, profit/loss, and customers
+### 2.3 User Classes and Characteristics
+The system supports three user classes:
 
-### 2.3 Users of the System
-
-#### 2.3.1 Admin
-
-The Admin has full control over the system.
-
-Responsibilities:
-
-- Manage all users and roles
-- Manage shops and system settings where applicable
-- Manage products, categories, units, customers, stock, expenses, returns, and reports
-- View all dashboards and business analytics
-- Approve or reject expenses
-- Delete records where permission is restricted to Admin
-
-#### 2.3.2 Manager
-
-The Manager handles operational management of the shop.
-
-Responsibilities:
-
-- Manage products, categories, units, stock, customers, sales, returns, and expenses
-- View business reports
-- Monitor daily sales and inventory
-- Create cashier users where allowed
-- Reprint invoices and manage daily shop activities
-
-#### 2.3.3 Cashier
-
-The Cashier performs sales-related operations.
-
-Responsibilities:
-
-- Access the POS screen
-- Search and select products
-- Add customers during sales
-- Process payments
-- Generate and print invoices
-- View own sales records
-- View limited dashboard information
+**Table 2.1: User Class Profiles**
+| User Class | Frequency of Use | Privilege Level | Technical Expertise | Primary Goal |
+| --- | --- | --- | --- | --- |
+| **Admin** | Occasional / Daily | Superuser (Full access) | Moderate | Manage user accounts, override policies, approve expenses, audit database logs. |
+| **Manager** | Daily | Intermediate (Operational) | Moderate | Add products, manage stock levels, monitor sales performance, view financial reports. |
+| **Cashier** | Constant (Shift-based) | Low (Transactional) | Basic | Fast cart checkout, register new customers, reprint cashier receipt slips. |
 
 ### 2.4 Operating Environment
+* **Server Infrastructure:** Host running PHP 8.2+, MySQL 8.0+, web server (Apache/Nginx), and composer environment.
+* **Client Interface:** Modern web browser (Chrome 110+, Edge 110+, Firefox 115+) running on desktop, laptop, or tablet.
+* **Network Requirements:** High-speed local network (LAN) or cloud-hosted web connection using standard port 80/443.
 
-The system operates in a web browser and requires a server environment capable of running PHP, Laravel, and MySQL.
+### 2.5 Design and Implementation Constraints
+* **Framework Constraint:** Must be written in Laravel 11.x to utilize standard MVC routing and Eloquent ORM.
+* **Database Constraint:** Relational MySQL schema with strict foreign key constraints (`ON DELETE RESTRICT` for products with sale histories).
+* **Security Constraint:** Passwords must be hashed using the `bcrypt` algorithm. CSRF tokens must protect all POST/PUT requests.
+* **Hardware Constraint:** The POS screen must render quickly and perform without delay on dual-core terminals with 4GB RAM.
 
-Recommended environment:
+### 2.6 Project Documentation
+The project deliverables include:
+* Completed source code directory.
+* Relational database migration scripts and role/user seeding configurations.
+* Detailed developer workflow guides and RBAC routing references.
+* System test plan and walkthrough execution logs.
 
-- Operating System: Windows, Linux, or macOS
-- Web Server: Apache or Nginx
-- PHP: 8.1 or higher
-- Database: MySQL 8.0 or compatible version
-- Composer for PHP dependency management
-- Node.js and npm for frontend asset compilation
-- Browser: Google Chrome, Microsoft Edge, Firefox, or similar modern browser
+### 2.7 User Documentation
+The end-user documentation includes:
+* **System Operations Manual:** Step-by-step cashier walkthrough for the checkout interface.
+* **Quick Reference Guide:** Configuration sheets for default logins and troubleshooting steps.
+* **Online Help Tooltips:** In-app interface explanations for stock adjustments and expense categories.
 
----
-
-## 3. System Features / Functional Requirements
-
-### 3.1 User Authentication
-
-| ID | Description |
-| --- | --- |
-| FR-AUTH-01 | The system shall allow users to log in using registered email and password. |
-| FR-AUTH-02 | The system shall allow authenticated users to log out securely. |
-| FR-AUTH-03 | The system shall support password reset through email. |
-| FR-AUTH-04 | The system shall allow users to update their own password. |
-| FR-AUTH-05 | The system shall protect pages from unauthenticated access. |
-| FR-AUTH-06 | The system shall redirect users to a dashboard after login. |
-
-### 3.2 User Management
-
-| ID | Description |
-| --- | --- |
-| FR-USER-01 | The system shall allow Admins to create users. |
-| FR-USER-02 | The system shall allow authorized users to view user lists. |
-| FR-USER-03 | The system shall allow Admins or permitted Managers to update user details. |
-| FR-USER-04 | The system shall allow Admins to deactivate, suspend, or delete users. |
-| FR-USER-05 | The system shall assign roles such as Admin, Manager, and Cashier. |
-| FR-USER-06 | The system shall restrict user actions according to assigned role. |
-| FR-USER-07 | The system shall allow users to manage their profile information. |
-
-### 3.3 Category Management
-
-| ID | Description |
-| --- | --- |
-| FR-CAT-01 | The system shall allow Admins and Managers to create product categories. |
-| FR-CAT-02 | The system shall allow Admins and Managers to update categories. |
-| FR-CAT-03 | The system shall allow Admins and Managers to delete categories. |
-| FR-CAT-04 | The system shall support active/inactive category status. |
-| FR-CAT-05 | The system shall support parent categories where applicable. |
-
-### 3.4 Unit Management
-
-| ID | Description |
-| --- | --- |
-| FR-UNIT-01 | The system shall allow Admins and Managers to create measurement units. |
-| FR-UNIT-02 | The system shall allow Admins and Managers to update units. |
-| FR-UNIT-03 | The system shall allow Admins and Managers to delete units. |
-| FR-UNIT-04 | The system shall allow products to be assigned to units such as pcs, box, or item. |
-
-### 3.5 Product Management
-
-| ID | Description |
-| --- | --- |
-| FR-PROD-01 | The system shall allow Admins and Managers to add products. |
-| FR-PROD-02 | The system shall store product name, SKU, barcode, category, unit, prices, tax, image, and stock alert level. |
-| FR-PROD-03 | The system shall allow Admins and Managers to update product details. |
-| FR-PROD-04 | The system shall allow Admins and Managers to delete or deactivate products. |
-| FR-PROD-05 | The system shall allow users to search products by name, SKU, or barcode. |
-| FR-PROD-06 | The system shall allow product image upload. |
-| FR-PROD-07 | The system shall support low-stock filtering. |
-
-### 3.6 Inventory Management
-
-| ID | Description |
-| --- | --- |
-| FR-INV-01 | The system shall maintain current stock quantity for each product. |
-| FR-INV-02 | The system shall reduce stock automatically after a sale. |
-| FR-INV-03 | The system shall increase stock automatically after completed returns. |
-| FR-INV-04 | The system shall allow Admins and Managers to add stock. |
-| FR-INV-05 | The system shall allow manual stock adjustments with notes. |
-| FR-INV-06 | The system shall keep stock logs for audit history. |
-| FR-INV-07 | The system shall display low-stock alerts when stock goes below the configured threshold. |
-| FR-INV-08 | The system shall prevent sales when requested quantity is greater than available stock. |
-
-### 3.7 Customer Management
-
-| ID | Description |
-| --- | --- |
-| FR-CUST-01 | The system shall allow customer records to be created. |
-| FR-CUST-02 | The system shall store customer name, phone, email, address, balance, and loyalty information where applicable. |
-| FR-CUST-03 | The system shall allow authorized users to update customer records. |
-| FR-CUST-04 | The system shall allow authorized users to search customers. |
-| FR-CUST-05 | The system shall show customer purchase history. |
-| FR-CUST-06 | The system shall allow a customer to be linked to a sale. |
-
-### 3.8 POS Management
-
-| ID | Description |
-| --- | --- |
-| FR-POS-01 | The system shall provide a POS interface for sales processing. |
-| FR-POS-02 | The system shall allow users to search and add products to a cart. |
-| FR-POS-03 | The system shall calculate subtotal, tax, discount, total, paid amount, and change amount. |
-| FR-POS-04 | The system shall support multiple payment methods such as cash and other configured methods. |
-| FR-POS-05 | The system shall generate a unique invoice number for each sale. |
-| FR-POS-06 | The system shall store sale items and payment details. |
-| FR-POS-07 | The system shall allow users to print invoices after payment. |
-| FR-POS-08 | The system shall allow users to view transaction history according to role. |
-
-### 3.9 Sales Management
-
-| ID | Description |
-| --- | --- |
-| FR-SALE-01 | The system shall allow Admins and Managers to view all sales. |
-| FR-SALE-02 | The system shall allow Cashiers to view only their own sales. |
-| FR-SALE-03 | The system shall allow sales to be filtered by date, customer, status, and invoice number. |
-| FR-SALE-04 | The system shall allow authorized users to update sale status. |
-| FR-SALE-05 | The system shall generate PDF invoices. |
-| FR-SALE-06 | The system shall allow invoices to be downloaded and reprinted. |
-
-### 3.10 Return Management
-
-| ID | Description |
-| --- | --- |
-| FR-RET-01 | The system shall allow Admins and Managers to create return requests. |
-| FR-RET-02 | The system shall allow users to search original sales for return processing. |
-| FR-RET-03 | The system shall validate return quantities against sold quantities. |
-| FR-RET-04 | The system shall prevent returning more items than originally sold. |
-| FR-RET-05 | The system shall support return statuses such as pending, completed, and cancelled. |
-| FR-RET-06 | The system shall restore stock when a return is completed. |
-| FR-RET-07 | The system shall maintain return history. |
-
-### 3.11 Expense Management
-
-| ID | Description |
-| --- | --- |
-| FR-EXP-01 | The system shall allow Admins and Managers to create expense records. |
-| FR-EXP-02 | The system shall allow expenses to be categorized. |
-| FR-EXP-03 | The system shall support receipt file upload. |
-| FR-EXP-04 | The system shall support expense approval and rejection. |
-| FR-EXP-05 | The system shall allow only pending expenses to be edited. |
-| FR-EXP-06 | The system shall allow Admins to approve or reject expenses. |
-| FR-EXP-07 | The system shall include expenses in business reports. |
-
-### 3.12 Reports and Analytics
-
-| ID | Description |
-| --- | --- |
-| FR-REP-01 | The system shall provide a dashboard with sales and stock summary. |
-| FR-REP-02 | The system shall generate sales reports. |
-| FR-REP-03 | The system shall generate product sales reports. |
-| FR-REP-04 | The system shall generate inventory reports. |
-| FR-REP-05 | The system shall generate stock movement reports. |
-| FR-REP-06 | The system shall generate expense reports. |
-| FR-REP-07 | The system shall generate profit and loss reports. |
-| FR-REP-08 | The system shall generate customer reports. |
-| FR-REP-09 | The system shall support date range filtering in reports. |
-| FR-REP-10 | The system shall support PDF or export formats where implemented. |
-
-### 3.13 Profile Management
-
-| ID | Description |
-| --- | --- |
-| FR-PROFILE-01 | The system shall allow users to view profile details. |
-| FR-PROFILE-02 | The system shall allow users to update profile details. |
-| FR-PROFILE-03 | The system shall allow users to change password. |
+### 2.8 Assumptions and Dependencies
+* **Local Printing:** Assumes standard browser print capabilities exist on the client computer to interface with the operating system's printer spooler.
+* **Data Integrity:** Assumes store staff record stock inputs accurately, and do not manually tamper with database tables.
+* **Continuous Power:** The checkout counter must be connected to an Uninterruptible Power Supply (UPS) to avoid database corruption during sudden power failures.
 
 ---
 
-## 4. Non-Functional Requirements
+## 3. External Interface Requirements
 
-### 4.1 Security Requirements
+### 3.1 User Interfaces
+The system provides a responsive, professional dashboard styling built with Tailwind CSS. Key layout requirements include:
+* **Consistent Navigation:** A fixed sidebar displaying modules according to user role permissions.
+* **Cashier Screen (POS):** A unified layout containing a product search bar, a line-item cart, customer selection, dynamic pricing indicators, and payment buttons.
+* **Validation Messaging:** Field-specific warning dialogs for invalid values (e.g., negative input or out-of-stock items).
+* **Responsive Breakpoints:** Columns collapse into stacked formats on tablets and small screens.
 
-| ID | Description |
-| --- | --- |
-| NFR-SEC-01 | The system shall hash user passwords before storing them. |
-| NFR-SEC-02 | The system shall enforce authentication for protected pages. |
-| NFR-SEC-03 | The system shall enforce role-based access control on the server side. |
-| NFR-SEC-04 | The system shall validate user input before saving data. |
-| NFR-SEC-05 | The system shall prevent unauthorized users from accessing restricted routes. |
-| NFR-SEC-06 | Uploaded files shall be validated for type and size. |
-| NFR-SEC-07 | Sensitive environment values shall not be committed publicly. |
+### 3.2 Hardware Interfaces
+The application supports standard POS hardware interfaces via driverless emulation:
+* **Barcode Scanner:** Scans barcode strings and inserts them into the focus input field as keyboard emulation input.
+* **Thermal Receipt Printer:** Standard ESC/POS-compatible 80mm/58mm thermal printers running via browser print styling.
+* **A4 Standard Office Printer:** Used for printing full-size management invoices and PDF reports.
 
-### 4.2 Performance Requirements
+### 3.3 Software Interfaces
+The application interfaces with:
+* **MySQL Database Engine:** Using PDO connections configured in `.env`.
+* **DomPDF Engine:** Converts HTML Blade designs into downloadable A4 PDF documents.
+* **Laravel Excel (PhpSpreadsheet):** Exports tabular report arrays into Excel format.
+* **SMTP Mail Server:** Relays password reset notifications via standard mail protocols.
 
-| ID | Description |
-| --- | --- |
-| NFR-PERF-01 | Product search in POS should return results quickly for normal shop inventory size. |
-| NFR-PERF-02 | Dashboard and reports should load within an acceptable time for daily business use. |
-| NFR-PERF-03 | Database queries should use proper indexes for products, sales, customers, and stock. |
-| NFR-PERF-04 | The system should support multiple authenticated users working at the same time. |
-
-### 4.3 Usability Requirements
-
-| ID | Description |
-| --- | --- |
-| NFR-USE-01 | The user interface shall be simple and understandable for shop staff. |
-| NFR-USE-02 | The POS screen shall allow fast product search and checkout. |
-| NFR-USE-03 | The system shall display validation errors clearly. |
-| NFR-USE-04 | Low-stock alerts shall be visible to authorized users. |
-| NFR-USE-05 | The UI shall be responsive for desktop, laptop, and tablet use. |
-
-### 4.4 Maintainability Requirements
-
-| ID | Description |
-| --- | --- |
-| NFR-MAIN-01 | The system shall follow Laravel MVC structure. |
-| NFR-MAIN-02 | Routes, controllers, models, migrations, and views shall be organized by feature. |
-| NFR-MAIN-03 | Configuration shall be handled through Laravel configuration files and environment variables. |
-| NFR-MAIN-04 | Code should follow consistent formatting and naming conventions. |
-
-### 4.5 Reliability Requirements
-
-| ID | Description |
-| --- | --- |
-| NFR-REL-01 | The system shall keep sales and stock records consistent during transactions. |
-| NFR-REL-02 | The system shall prevent invalid stock changes. |
-| NFR-REL-03 | The system shall maintain logs for stock movements. |
-| NFR-REL-04 | The system shall keep invoice records after sales are completed. |
+### 3.4 Communications Interfaces
+* **Transport Protocols:** Handled via HTTP/1.1 and secured with HTTPS TLS 1.3 protocol.
+* **Asynchronous Updates:** Client-server communication utilizing Livewire and Alpine.js to update cart quantities and search results dynamically without full page reloads.
 
 ---
 
-## 5. System Architecture
+## 4. System Features
 
-### 5.1 Technology Stack
+### Use Case Diagram
 
-| Layer | Technology | Purpose |
-| --- | --- | --- |
-| Backend | Laravel 10 | Server-side framework |
-| Language | PHP 8.1+ | Backend programming language |
-| Frontend | Blade Templates | Server-rendered UI |
-| Frontend Interactivity | Alpine.js, Livewire | Dynamic UI behavior |
-| Styling | Tailwind CSS, Tabler assets | Responsive UI design |
-| Database | MySQL | Relational data storage |
-| Authentication | Laravel Breeze | Login, logout, password reset |
-| Authorization | Roles, permissions, middleware | Access control |
-| PDF | Laravel DomPDF | Invoice/report PDF generation |
-| Excel / Spreadsheet | PhpSpreadsheet | Spreadsheet export/import support |
-| Barcode | Picqer Barcode Generator | Barcode generation |
-| Build Tool | Vite | Frontend asset bundling |
+```mermaid
+graph TD
+    subgraph Actors
+        A[Admin]
+        M[Manager]
+        C[Cashier]
+    end
+    
+    subgraph MrCherry Computer POS System
+        UC1(Login & Profile Management)
+        UC2(Manage Users & Roles)
+        UC3(Manage Categories & Units)
+        UC4(Manage Products & Images)
+        UC5(Update Stock & Adjustments)
+        UC6(Access POS & Search Products)
+        UC7(Process Payments & Invoice)
+        UC8(Reprint & Download Invoices)
+        UC9(Manage Customers & Credit)
+        UC10(Process Returns & Refunds)
+        UC11(Record & Track Expenses)
+        UC12(Approve Expenses)
+        UC13(View Business Reports & PnL)
+    end
+    
+    C --> UC1
+    C --> UC6
+    C --> UC7
+    C --> UC8
+    C --> UC9
+    
+    M --> UC1
+    M --> UC3
+    M --> UC4
+    M --> UC5
+    M --> UC6
+    M --> UC7
+    M --> UC8
+    M --> UC9
+    M --> UC10
+    M --> UC11
+    M --> UC13
+    
+    A --> UC1
+    A --> UC2
+    A --> UC3
+    A --> UC4
+    A --> UC5
+    A --> UC6
+    A --> UC7
+    A --> UC8
+    A --> UC9
+    A --> UC10
+    A --> UC11
+    A --> UC12
+    A --> UC13
+```
+**Figure 4.1: High-Level System Use Case Diagram**
 
-### 5.2 High-Level Architecture
+---
 
-MrCherry Computer POS System follows a three-tier architecture:
+### Initial Class Diagram
 
-- Presentation Tier: Blade views, Tailwind CSS, Alpine.js, Livewire, and JavaScript provide the user interface.
-- Application Tier: Laravel controllers, middleware, services, models, and validation handle business logic.
-- Data Tier: MySQL stores users, roles, products, stock, sales, payments, returns, customers, expenses, and reports data.
+```mermaid
+classDiagram
+    class User {
+        +id: int
+        +name: string
+        +email: string
+        +phone: string
+        +address: text
+        +is_active: boolean
+        +password: string
+        +verifyPassword()
+        +hasRole()
+        +hasPermission()
+    }
+    class Role {
+        +id: int
+        +name: string
+        +slug: string
+        +description: text
+    }
+    class Permission {
+        +id: int
+        +name: string
+        +slug: string
+    }
+    class Product {
+        +id: int
+        +name: string
+        +sku: string
+        +barcode: string
+        +purchase_price: decimal
+        +selling_price: decimal
+        +mrp: decimal
+        +tax_percentage: decimal
+        +low_stock_alert: int
+        +is_active: boolean
+        +image: string
+        +checkStockAlert()
+    }
+    class Category {
+        +id: int
+        +name: string
+        +slug: string
+        +parent_id: int
+        +is_active: boolean
+    }
+    class Unit {
+        +id: int
+        +name: string
+        +short_name: string
+        +is_active: boolean
+    }
+    class Stock {
+        +id: int
+        +product_id: int
+        +quantity: decimal
+        +updateStock()
+    }
+    class StockLog {
+        +id: int
+        +product_id: int
+        +type: enum
+        +quantity: decimal
+        +previous_quantity: decimal
+        +current_quantity: decimal
+        +notes: text
+    }
+    class Customer {
+        +id: int
+        +name: string
+        +phone: string
+        +email: string
+        +credit_limit: decimal
+        +current_balance: decimal
+        +loyalty_points: int
+        +updateBalance()
+    }
+    class Sale {
+        +id: int
+        +invoice_number: string
+        +customer_id: int
+        +sale_date: datetime
+        +subtotal: decimal
+        +discount_amount: decimal
+        +tax_amount: decimal
+        +total_amount: decimal
+        +paid_amount: decimal
+        +due_amount: decimal
+        +payment_status: enum
+        +status: enum
+        +calculateTotals()
+    }
+    class SaleItem {
+        +id: int
+        +sale_id: int
+        +product_id: int
+        +product_name: string
+        +quantity: decimal
+        +unit_price: decimal
+        +tax_amount: decimal
+        +total: decimal
+    }
+    class Payment {
+        +id: int
+        +sale_id: int
+        +amount: decimal
+        +payment_method: enum
+        +transaction_id: string
+    }
+    class ReturnModel {
+        +id: int
+        +return_number: string
+        +sale_id: int
+        +refund_amount: decimal
+        +status: enum
+    }
+    class Expense {
+        +id: int
+        +expense_number: string
+        +amount: decimal
+        +status: enum
+        +approve()
+    }
 
-### 5.3 Backend Module Structure
+    User "*" -- "*" Role
+    Role "*" -- "*" Permission
+    Product "*" --> "1" Category
+    Product "*" --> "1" Unit
+    Product "1" -- "1" Stock
+    Product "1" -- "*" StockLog
+    Sale "*" --> "1" Customer
+    Sale "1" -- "*" SaleItem
+    Sale "1" -- "*" Payment
+    SaleItem "*" --> "1" Product
+    ReturnModel "1" --> "1" Sale
+    Expense "*" --> "1" User : created_by
+```
+**Figure 4.2: Domain Entity Class Diagram**
 
-| Module | Responsibility |
+---
+
+### Checkout Activity Diagram
+
+```mermaid
+stateDiagram-v2
+    [*] --> StartPOS
+    StartPOS --> SearchProduct : Enter Name or Scan Barcode
+    SearchProduct --> AddToCart : Product Found
+    AddToCart --> CheckStock : Verify Available Stock
+    CheckStock --> StockInsufficient : Available < Requested
+    StockInsufficient --> ShowError : Display Warning
+    ShowError --> SearchProduct
+    CheckStock --> StockSufficient : Available >= Requested
+    StockSufficient --> UpdateCartTotal : Re-calculate Subtotal, Tax, & Discounts
+    UpdateCartTotal --> AddMoreItems : Yes
+    AddMoreItems --> SearchProduct
+    UpdateCartTotal --> ProceedToCheckout : No (Proceed)
+    ProceedToCheckout --> SelectCustomer : Optional Customer Assignment
+    SelectCustomer --> ChoosePaymentMethod : Cash / Card / UPI / Mixed
+    ChoosePaymentMethod --> ProcessPayment : Input Paid Amount
+    ProcessPayment --> VerifyPayment : Validate Amount & Calculate Change
+    VerifyPayment --> SaveTransaction : Generate Invoice & Update DB
+    SaveTransaction --> DecrementStock : Auto-adjust Stocks & Log Movement
+    DecrementStock --> PrintReceipt : Generate Thermal Receipt / A4 PDF
+    PrintReceipt --> [*]
+```
+**Figure 4.3: Checkout Workflow Activity Diagram**
+
+---
+
+### 4.1 System Feature 1: User Authentication and Profile Management
+
+#### 4.1.1 Description
+Ensures that only registered employees can access system routes. Features include secure login redirection, password encryption, and customizable profile settings.
+
+#### 4.1.2 Use Case Scenario
+
+**Table 4.2: Use Case Scenario - User Authentication**
+| Use Case Element | Details |
 | --- | --- |
-| Auth | Login, logout, registration, password reset |
-| Dashboard | Role-based metrics and summary widgets |
-| Users | User creation, editing, suspension, deletion, role assignment |
-| Categories | Product category CRUD |
-| Units | Product unit CRUD |
-| Products | Product catalogue, image upload, SKU/barcode search |
-| Stock | Stock quantity and stock movement logs |
-| Customers | Customer CRUD and purchase history |
-| POS | Cart, checkout, payments, invoices |
-| Sales | Sales history, status updates, invoice download |
-| Returns | Return creation, completion, cancellation, stock restoration |
-| Expenses | Expense tracking, categories, approval workflow |
-| Reports | Sales, inventory, stock movement, expenses, profit/loss, customer reports |
+| **Actor** | Admin, Manager, Cashier |
+| **Pre-conditions** | The user has a registered email in the database and is marked active. |
+| **Basic Flow** | 1. User navigates to `/login`. <br> 2. User inputs their email and password, then submits. <br> 3. System checks database credentials. <br> 4. System starts session and redirects user to their role-based dashboard. |
+| **Alternative Flow** | If email or password is invalid, the system displays an error message and redirects back to the login page. |
+| **Post-conditions** | User receives a secure session token and accesses the layout navigation menu. |
+
+#### 4.1.3 Detailed Functional Requirements
+* **FR-AUTH-01:** The system shall restrict all database query routes to authenticated users, except login pages.
+* **FR-AUTH-02:** The system shall encrypt passwords using `bcrypt` before database storage.
+* **FR-AUTH-03:** The system shall auto-redirect logged-in users to the dashboard.
+* **FR-AUTH-04:** The system shall allow users to edit their own phone number, address, and password.
 
 ---
 
-## 6. External Interface Requirements
+### 4.2 System Feature 2: Product and Inventory Management
 
-### 6.1 User Interfaces
+#### 4.2.1 Description
+Allows managers to create product items, link them to specific categories and units, adjust stock levels manually, and set thresholds for low stock notifications.
 
-| Page / View | Description | Accessible By |
-| --- | --- | --- |
-| Login | User login page | Guest |
-| Dashboard | Role-based business summary | Admin, Manager, Cashier |
-| POS | Product search, cart, checkout, payment | Admin, Manager, Cashier |
-| Products | Product list, create, edit, stock update | Admin, Manager |
-| Categories | Category list, create, edit, delete | Admin, Manager |
-| Units | Unit list, create, edit, delete | Admin, Manager |
-| Customers | Customer list, create, edit, details | Admin, Manager |
-| Sales | Sales list, details, invoice, status | Admin, Manager, Cashier with restrictions |
-| Returns | Create and manage returns | Admin, Manager |
-| Expenses | Create and manage expenses | Admin, Manager |
-| Expense Categories | Manage expense categories | Admin |
-| Reports | Business reports | Admin, Manager |
-| Profile | View and update profile | All authenticated users |
+#### 4.2.2 Use Case Scenario
 
-### 6.2 Hardware Interfaces
-
-The system does not require proprietary hardware. It may support:
-
-- Desktop computer or laptop
-- Barcode scanner that works as keyboard input
-- Receipt printer or normal printer through browser print dialog
-- Network connection to access the hosted system
-
-### 6.3 Software Interfaces
-
-| System | Interface Type | Purpose |
-| --- | --- | --- |
-| MySQL | Laravel database connection | Store application data |
-| Browser | HTTP/HTTPS | Access web application |
-| DomPDF | Laravel package | Generate PDF invoices and reports |
-| Vite | Build tool | Compile frontend assets |
-| Mail server | SMTP configuration | Password reset and email features where configured |
-
----
-
-## 7. Other Requirements
-
-### 7.1 Security Rules
-
-- Only authenticated users can access protected system pages.
-- Admin users can perform all operations.
-- Managers can manage most operational features but cannot perform Admin-only actions.
-- Cashiers can process POS transactions and view limited records.
-- Passwords must be stored securely using hashing.
-- Database credentials must be stored in the `.env` file.
-- File uploads must be validated.
-- Server-side authorization must be applied even if the UI hides restricted buttons.
-
-### 7.2 Business Rules
-
-- A sale must not be completed if product stock is insufficient.
-- Stock must decrease after successful sale completion.
-- Stock must increase after a completed return.
-- Return quantity cannot exceed the sold quantity.
-- Each sale must have a unique invoice number.
-- Cashiers can view only their own sales unless permission is granted.
-- Expenses require approval where the approval workflow is enabled.
-- Deleted important records should use soft delete where applicable.
-- Admin approval is required for sensitive actions such as expense approval, user role assignment, and selected deletions.
-
----
-
-## 8. Route / API Reference
-
-### 8.1 Authentication Routes
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/login` | Login page | Guest |
-| POST | `/login` | Process login | Guest |
-| POST | `/logout` | Logout user | Authenticated |
-| GET | `/register` | Registration page | Guest / configured access |
-| POST | `/register` | Process registration | Guest / configured access |
-| GET | `/forgot-password` | Forgot password page | Guest |
-| POST | `/forgot-password` | Send reset link | Guest |
-| GET | `/reset-password/{token}` | Reset password form | Guest |
-| POST | `/reset-password` | Process password reset | Guest |
-
-### 8.2 Dashboard
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/dashboard` | Role-based dashboard | Authenticated |
-
-### 8.3 POS
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/pos` | POS interface | Authenticated |
-| GET | `/pos/search-products` | Search products for POS | Authenticated |
-| POST | `/pos/process-sale` | Process sale transaction | Authenticated |
-| GET | `/pos/invoice/{id}` | Print invoice | Authenticated |
-| GET | `/pos/thermal-invoice/{id}` | Thermal invoice view | Authenticated |
-
-### 8.4 Products
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/products` | Product list | Admin, Manager |
-| GET | `/products/create` | Create product form | Admin, Manager |
-| POST | `/products` | Store product | Admin, Manager |
-| GET | `/products/{id}/edit` | Edit product form | Admin, Manager |
-| PUT/PATCH | `/products/{id}` | Update product | Admin, Manager |
-| DELETE | `/products/{id}` | Delete product | Admin, Manager |
-| POST | `/products/{id}/update-stock` | Update product stock | Admin, Manager |
-
-### 8.5 Categories and Units
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/categories` | Category list | Admin, Manager |
-| POST | `/categories` | Store category | Admin, Manager |
-| PUT/PATCH | `/categories/{id}` | Update category | Admin, Manager |
-| DELETE | `/categories/{id}` | Delete category | Admin, Manager |
-| GET | `/units` | Unit list | Admin, Manager |
-| POST | `/units` | Store unit | Admin, Manager |
-| PUT/PATCH | `/units/{id}` | Update unit | Admin, Manager |
-| DELETE | `/units/{id}` | Delete unit | Admin, Manager |
-
-### 8.6 Customers
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/customers` | Customer list | Admin, Manager |
-| GET | `/customers/create` | Create customer form | Admin, Manager |
-| POST | `/customers` | Store customer | Admin, Manager |
-| GET | `/customers/{id}` | Customer details | Admin, Manager |
-| GET | `/customers/{id}/edit` | Edit customer form | Admin, Manager |
-| PUT/PATCH | `/customers/{id}` | Update customer | Admin, Manager |
-| DELETE | `/customers/{id}` | Delete customer | Admin, Manager |
-| GET | `/customers-search` | Search customers | Admin, Manager |
-
-### 8.7 Sales
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/sales` | Sales list | Authenticated |
-| GET | `/sales/{id}` | Sale details | Authenticated |
-| GET | `/sales/{id}/edit` | Edit sale | Admin, Manager |
-| GET | `/sales/{id}/invoice` | View invoice | Authenticated |
-| GET | `/sales/{id}/download` | Download invoice | Authenticated |
-| PATCH | `/sales/{id}/status` | Update sale status | Admin, Manager |
-| DELETE | `/sales/{id}` | Delete sale | Admin |
-
-### 8.8 Returns
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/returns` | Return list | Admin, Manager |
-| GET | `/returns/create` | Create return form | Admin, Manager |
-| POST | `/returns` | Store return | Admin, Manager |
-| GET | `/returns/{id}` | Return details | Admin, Manager |
-| POST | `/returns/{id}/complete` | Complete return | Admin, Manager |
-| POST | `/returns/{id}/cancel` | Cancel return | Admin, Manager |
-| DELETE | `/returns/{id}` | Delete return | Admin |
-| GET | `/returns-search-sale` | Search sale for return | Admin, Manager |
-
-### 8.9 Expenses
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/expenses` | Expense list | Admin, Manager |
-| GET | `/expenses/create` | Create expense form | Admin, Manager |
-| POST | `/expenses` | Store expense | Admin, Manager |
-| GET | `/expenses/{id}` | Expense details | Admin, Manager |
-| GET | `/expenses/{id}/edit` | Edit expense | Admin, Manager |
-| PUT/PATCH | `/expenses/{id}` | Update expense | Admin, Manager |
-| DELETE | `/expenses/{id}` | Delete expense | Admin |
-| POST | `/expenses/{id}/approve` | Approve expense | Admin |
-| POST | `/expenses/{id}/reject` | Reject expense | Admin |
-
-### 8.10 Reports
-
-| Method | Route | Description | Access |
-| --- | --- | --- | --- |
-| GET | `/reports` | Reports dashboard | Admin, Manager |
-| GET | `/reports/sales` | Sales report | Admin, Manager |
-| GET | `/reports/product-sales` | Product sales report | Admin, Manager |
-| GET | `/reports/inventory` | Inventory report | Admin, Manager |
-| GET | `/reports/stock-movement` | Stock movement report | Admin, Manager |
-| GET | `/reports/expenses` | Expense report | Admin, Manager |
-| GET | `/reports/profit-loss` | Profit and loss report | Admin, Manager |
-| GET | `/reports/customers` | Customer report | Admin, Manager |
-
----
-
-## 9. Appendices
-
-### 9.1 Appendix A - Main Database Tables
-
-| Table | Purpose |
+**Table 4.3: Use Case Scenario - Manage Products**
+| Use Case Element | Details |
 | --- | --- |
-| `users` | Stores system user accounts |
-| `roles` | Stores role names such as Admin, Manager, Cashier |
-| `permissions` | Stores permission definitions |
-| `role_user` | Maps users to roles |
-| `permission_role` | Maps permissions to roles |
-| `categories` | Stores product categories |
-| `units` | Stores product measurement units |
-| `products` | Stores product details |
-| `stocks` | Stores current stock quantity |
-| `stock_logs` | Stores stock movement history |
-| `customers` | Stores customer details |
-| `sales` | Stores sale master records |
-| `sale_items` | Stores products sold in each sale |
-| `payments` | Stores sale payment information |
-| `returns` | Stores return master records |
-| `return_items` | Stores products returned |
-| `expenses` | Stores business expenses |
-| `expense_categories` | Stores expense category data |
+| **Actor** | Admin, Manager |
+| **Pre-conditions** | Product categories and measurement units are created and active. |
+| **Basic Flow** | 1. User clicks "Add Product". <br> 2. User enters name, SKU, barcode, purchase price, selling price, and low stock threshold. <br> 3. User uploads product image and selects category/unit. <br> 4. System validates inputs and updates the database. |
+| **Alternative Flow** | If the SKU or barcode is duplicate, the system displays an error and prompts for a unique code. |
+| **Post-conditions** | Product record is created with an initial stock level of zero. |
 
-### 9.2 Appendix B - Environment Variables Reference
+#### 4.2.3 Detailed Functional Requirements
+* **FR-PROD-01:** The system shall allow Admins and Managers to perform CRUD operations on categories, units, and products.
+* **FR-PROD-02:** The system shall auto-generate url slugs from category and product names.
+* **FR-PROD-03:** The system shall log every manual stock change (type: `in`, `out`, `adjustment`, `return`) in the `stock_logs` table.
+* **FR-PROD-04:** The system shall display a low-stock alert when quantity drops below the alert threshold.
 
-| Variable | Description |
+---
+
+### 4.3 System Feature 3: POS Sales and Invoice Generation
+
+#### 4.3.1 Description
+Provides cashiers with a fast checkout interface to search products by barcode or name, manage a cart, apply discounts, select customers, process payments, and print invoices.
+
+#### 4.3.2 Use Case Scenario
+
+**Table 4.4: Use Case Scenario - POS Sales Checkout**
+| Use Case Element | Details |
 | --- | --- |
-| `APP_NAME` | Application name |
-| `APP_ENV` | Application environment such as local or production |
-| `APP_KEY` | Laravel application encryption key |
-| `APP_DEBUG` | Debug mode setting |
-| `APP_URL` | Base application URL |
-| `DB_CONNECTION` | Database connection type, usually mysql |
-| `DB_HOST` | Database host |
-| `DB_PORT` | Database port |
-| `DB_DATABASE` | Database name |
-| `DB_USERNAME` | Database username |
-| `DB_PASSWORD` | Database password |
-| `MAIL_MAILER` | Mail driver |
-| `MAIL_HOST` | Mail server host |
-| `MAIL_PORT` | Mail server port |
-| `MAIL_USERNAME` | Mail username |
-| `MAIL_PASSWORD` | Mail password |
+| **Actor** | Admin, Manager, Cashier |
+| **Pre-conditions** | Cashier is logged in, products are in stock, and POS interface is active. |
+| **Basic Flow** | 1. Cashier scans barcode or searches product name. <br> 2. Product is added to the cart; the system verifies stock availability. <br> 3. Cashier applies discounts and selects customer (if applicable). <br> 4. Cashier chooses payment method and submits transaction. <br> 5. System generates invoice, saves record, deducts stock, and displays receipt. |
+| **Alternative Flow** | If the cart item quantity exceeds available stock, checkout is blocked and the system shows an error message. |
+| **Post-conditions** | The transaction status is marked `completed` and the database updates. |
 
-### 9.3 Appendix C - Default Development Credentials
+#### 4.3.3 Detailed Functional Requirements
+* **FR-POS-01:** The system shall provide an autocomplete search interface for products.
+* **FR-POS-02:** The system shall apply fixed or percentage discounts, capped based on cashier role limits.
+* **FR-POS-03:** The system shall generate a unique invoice matching the format `INV-YYYYMMDD-00001`.
+* **FR-POS-04:** The system shall support printing thermal invoice slips (80mm) and downloading A4 PDF bills.
 
-These credentials are for development/testing only and must be changed before production deployment.
+---
 
-| Role | Email | Password | Access Level |
-| --- | --- | --- | --- |
-| Admin | `admin@pos.com` | `password` | Full system access |
-| Manager | `manager@pos.com` | `password` | Operational management access |
-| Cashier | `cashier@pos.com` | `password` | POS and own-sales access |
+### 4.4 System Feature 4: Return and Refund Management
 
-### 9.4 Appendix D - Role Access Summary
+#### 4.4.1 Description
+Enables handling product returns. The system retrieves original invoice records, verifies quantities, calculates refund amounts, and restores returned products to stock.
 
-| Feature Area | Admin | Manager | Cashier |
-| --- | --- | --- | --- |
-| Dashboard | Full | Operational | Limited |
-| User Management | Full | Limited | No |
-| Category Management | Full | Full | View only / No management |
-| Unit Management | Full | Full | View only / No management |
-| Product Management | Full | Full | View/Search only |
-| Stock Management | Full | Full | View alerts only |
-| POS | Full | Full | Full |
-| Sales Management | Full | Full | Own sales only |
-| Invoice Printing | Full | Full | Own invoices |
-| Returns | Full | Full | Limited / No management depending on policy |
-| Expenses | Full | Full | No |
-| Reports | Full | Full | Limited |
+#### 4.4.2 Use Case Scenario
 
+**Table 4.5: Use Case Scenario - Process Product Return**
+| Use Case Element | Details |
+| --- | --- |
+| **Actor** | Admin, Manager |
+| **Pre-conditions** | The sale transaction is completed and the invoice number is valid. |
+| **Basic Flow** | 1. User searches the invoice number to load sold items. <br> 2. User selects return quantities and enters the reason. <br> 3. User submits return request. <br> 4. System updates database, marks return status, and increases stock levels. |
+| **Alternative Flow** | If return quantity exceeds original sale quantity, the system blocks the return. |
+| **Post-conditions** | A return ID is created and corresponding stock log entries are logged. |
+
+#### 4.4.3 Detailed Functional Requirements
+* **FR-RET-01:** The system shall block returns containing quantities higher than those sold.
+* **FR-RET-02:** The system shall auto-restore product stock values on completion of return requests.
+* **FR-RET-03:** The system shall store return transaction records under a unique index matching `RET-YYYYMMDD-00001`.
+
+---
+
+### 4.5 System Feature 5: Expense Management and Approval
+
+#### 4.5.1 Description
+Enables logging operating costs, uploading receipt images, and routes them to admins for authorization.
+
+#### 4.5.2 Use Case Scenario
+
+**Table 4.6: Use Case Scenario - Manage Business Expense**
+| Use Case Element | Details |
+| --- | --- |
+| **Actor** | Creator (Manager), Approver (Admin) |
+| **Pre-conditions** | Expense categories are created and active. |
+| **Basic Flow** | 1. Creator enters expense amount, category, date, and description. <br> 2. Creator uploads receipt image and submits. <br> 3. Admin reviews pending expenses and clicks "Approve". <br> 4. System marks status as `approved` and includes the amount in calculations. |
+| **Alternative Flow** | If Admin rejects the expense, the status updates to `rejected` and is excluded from profit-loss reports. |
+| **Post-conditions** | Expense logs update and the status is locked. |
+
+#### 4.5.3 Detailed Functional Requirements
+* **FR-EXP-01:** The system shall support receipt file uploads, restricted to PDF, JPEG, and PNG formats.
+* **FR-EXP-02:** The system shall auto-approve expenses created by Admin users.
+* **FR-EXP-03:** The system shall block modification of expenses once approved or rejected.
+
+---
+
+### 4.6 System Feature 6: Business Reporting and Analytics
+
+#### 4.6.1 Description
+Provides graphical and tabular reports showing store performance metrics.
+
+#### 4.6.2 Detailed Functional Requirements
+* **FR-REP-01:** The system shall generate daily, monthly, and yearly sales reports with profit margins.
+* **FR-REP-02:** The system shall generate stock movement reports showing logs for audit verification.
+* **FR-REP-03:** The system shall calculate profit/loss totals by subtracting expenses from net sales.
+* **FR-REP-04:** The system shall support date range filters and export reports in PDF and Excel formats.
+
+---
+
+## 5. Other Nonfunctional Requirements
+
+### 5.1 Performance Requirements
+* **Response Time:** Product search queries and POS autocomplete inputs must return database matches in less than 500 milliseconds.
+* **Report Load Time:** Financial tables and charts must calculate and display within 3 seconds for datasets under 100,000 transaction rows.
+* **Concurrency:** The system must support at least 15 concurrent cashier sessions without showing performance degradation.
+
+### 5.2 Safety Requirements
+* **Database Transact-SQL Integrity:** POS payment routines must run inside SQL transactions. If a step fails, the system rolls back all updates to keep stocks and payments consistent.
+* **Data Loss Prevention:** The system must run automated daily backups of the database schema and store logs on a separate storage drive.
+
+### 5.3 Security Requirements
+* **URL Protection:** The system must prevent access to restricted pages via direct URL entry by returning a `403 Forbidden` response.
+* **File Upload Filters:** Image uploads must be validated to prevent executable script execution on the server.
+* **SQL Injection & XSS Protections:** The system must secure variables using Eloquent bindings and sanitize HTML fields before output rendering.
+
+### 5.4 Software Quality Attributes
+* **Maintainability:** The code must follow the standard Laravel Model-View-Controller pattern, separating business logic from design templates.
+* **Adaptability:** Configuration settings must be stored in `.env` variables to allow easy migration between development and production environments.
+* **Usability:** The interface must use clear labels, tooltips, and keyboard shortcuts to allow efficient operation by cashier staff.
+
+### 5.5 Business Rules
+* **No Negative Stock Sales:** The system must block checkout operations if the cart quantity exceeds the available product stock.
+* **Discount Capping:** Cashiers are restricted to applying maximum discounts of 10% per item and 5% per transaction. Larger discounts require Manager override.
+* **Audit Trail Security:** System logs and transactional records cannot be modified or deleted, maintaining a complete record of store operations.
+
+---
+
+## 6. Other Requirements
+
+### 6.1 Database Backup and Recovery
+* The system configuration must include daily SQL dumps scheduled via server cron jobs.
+* Backup files must be compressed and saved to a secure directory outside the webroot.
+
+### 6.2 Internationalization and Localization
+* The default currency is set to Sri Lankan Rupees (LKR).
+* Numerical fields must use standard digit formatting and represent dates in YYYY-MM-DD format.
+
+---
+
+## Appendix A: Glossary
+
+* **API (Application Programming Interface):** Intermediary software rules defining how system components interact.
+* **Breeze:** A simple Laravel authentication scaffolding package.
+* **CRUD (Create, Read, Update, Delete):** Standard database data manipulation actions.
+* **ESC/POS:** A standard printer command language system developed by Epson.
+* **Low Stock Alert:** An automated indicator triggered when inventory falls below a specified quantity threshold.
+* **Spatie Permission:** A Laravel security package that enables role-based user access controls.
+* **UPI (Unified Payments Interface):** A real-time mobile payment protocol.
+
+---
+
+## Appendix B: Analysis Models
+
+### Entity-Relationship Diagram (ERD)
+
+```mermaid
+erDiagram
+    users {
+        bigint id PK
+        varchar name
+        varchar email UK
+        varchar password
+        varchar phone
+        text address
+        boolean is_active
+        timestamp created_at
+    }
+    roles {
+        bigint id PK
+        varchar name UK
+        varchar slug UK
+        text description
+    }
+    permissions {
+        bigint id PK
+        varchar name UK
+        varchar slug UK
+        text description
+    }
+    role_user {
+        bigint id PK
+        bigint user_id FK
+        bigint role_id FK
+    }
+    permission_role {
+        bigint id PK
+        bigint role_id FK
+        bigint permission_id FK
+    }
+    categories {
+        bigint id PK
+        varchar name
+        varchar slug UK
+        bigint parent_id FK
+        boolean is_active
+    }
+    units {
+        bigint id PK
+        varchar name
+        varchar short_name
+        boolean is_active
+    }
+    products {
+        bigint id PK
+        varchar name
+        varchar sku UK
+        varchar barcode UK
+        bigint category_id FK
+        bigint unit_id FK
+        decimal purchase_price
+        decimal selling_price
+        decimal tax_percentage
+        int low_stock_alert
+        boolean is_active
+    }
+    stocks {
+        bigint id PK
+        bigint product_id FK
+        decimal quantity
+    }
+    stock_logs {
+        bigint id PK
+        bigint product_id FK
+        enum type
+        decimal quantity
+        decimal previous_quantity
+        decimal current_quantity
+        varchar reference_type
+    }
+    customers {
+        bigint id PK
+        varchar name
+        varchar phone UK
+        varchar email
+        decimal credit_limit
+        decimal current_balance
+    }
+    sales {
+        bigint id PK
+        varchar invoice_number UK
+        bigint customer_id FK
+        datetime sale_date
+        decimal subtotal
+        decimal discount_amount
+        decimal tax_amount
+        decimal total_amount
+        decimal paid_amount
+        decimal due_amount
+        enum payment_status
+        enum status
+    }
+    sale_items {
+        bigint id PK
+        bigint sale_id FK
+        bigint product_id FK
+        varchar product_name
+        decimal quantity
+        decimal unit_price
+        decimal total
+    }
+    payments {
+        bigint id PK
+        bigint sale_id FK
+        datetime payment_date
+        decimal amount
+        enum payment_method
+    }
+    returns {
+        bigint id PK
+        varchar return_number UK
+        bigint sale_id FK
+        datetime return_date
+        decimal total_amount
+        decimal refund_amount
+        enum refund_method
+    }
+    return_items {
+        bigint id PK
+        bigint return_id FK
+        bigint product_id FK
+        decimal quantity
+        decimal total
+    }
+    expenses {
+        bigint id PK
+        varchar expense_number UK
+        bigint expense_category_id FK
+        date expense_date
+        decimal amount
+        enum status
+    }
+    expense_categories {
+        bigint id PK
+        varchar name
+        text description
+    }
+
+    users ||--o{ role_user : "has"
+    roles ||--o{ role_user : "assigned"
+    roles ||--o{ permission_role : "contains"
+    permissions ||--o{ permission_role : "maps"
+    categories ||--o{ products : "categorizes"
+    categories ||--o{ categories : "parent"
+    units ||--o{ products : "measures"
+    products ||--|| stocks : "monitors"
+    products ||--o{ stock_logs : "records"
+    customers ||--o{ sales : "places"
+    sales ||--o{ sale_items : "contains"
+    products ||--o{ sale_items : "sold_in"
+    sales ||--o{ payments : "paid_by"
+    sales ||--|| returns : "returned_from"
+    returns ||--o{ return_items : "contains"
+    products ||--o{ return_items : "returned"
+    expense_categories ||--o{ expenses : "categorizes"
+    users ||--o{ expenses : "created_by"
+    users ||--o{ sales : "processed_by"
+```
+**Figure B.1: System Database Entity-Relationship Diagram**
+
+---
+
+## Appendix C: To Be Determined List
+
+1. **TBD-01:** Card terminal API and local bank payment gateway integration protocols.
+2. **TBD-02:** Automated SMS client configuration for sending billing summaries and loyalty point logs.
+3. **TBD-03:** Multi-branch central database synchronization schemas and cache parameters.
